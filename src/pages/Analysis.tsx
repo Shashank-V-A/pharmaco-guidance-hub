@@ -6,6 +6,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { UploadZone } from "@/components/UploadZone";
+import { useAnalysisResult } from "@/contexts/AnalysisResultContext";
+import type { AnalysisResult } from "@/types/analysis";
 
 const drugs = [
   "Clopidogrel",
@@ -18,8 +20,69 @@ const drugs = [
   "Fluorouracil",
 ];
 
+function buildResultFromAnalysis(drug: string, fileName: string): AnalysisResult {
+  const drugName = drug.charAt(0).toUpperCase() + drug.slice(1);
+  return {
+    drug: drugName,
+    fileName,
+    risk: "adjust",
+    severity:
+      "Intermediate metabolizer — reduced drug activation expected. Consider alternative antiplatelet therapy.",
+    confidence: 87,
+    gene: "CYP2C19",
+    diplotype: "*1/*2",
+    phenotype: "Intermediate Metabolizer",
+    activityLevel: 1,
+    variants: [
+      { rsid: "rs4244285", gene: "CYP2C19", allele: "*2", function: "No function" },
+      { rsid: "rs4986893", gene: "CYP2C19", allele: "*1", function: "Normal function" },
+      { rsid: "rs12248560", gene: "CYP2C19", allele: "*17", function: "Increased function" },
+    ],
+    explanations: [
+      {
+        title: "Clinical Recommendation",
+        content:
+          "Based on CYP2C19 intermediate metabolizer status, consider alternative antiplatelet therapy (e.g., prasugrel or ticagrelor) if no contraindications exist. Standard dose clopidogrel may result in reduced platelet inhibition.",
+      },
+      {
+        title: "Pharmacokinetic Impact",
+        content:
+          "CYP2C19 is the primary enzyme responsible for the bioactivation of clopidogrel. Patients with one loss-of-function allele (*2) demonstrate approximately 30% reduction in active metabolite formation compared to normal metabolizers.",
+      },
+      {
+        title: "Evidence Summary",
+        content:
+          "This recommendation is supported by CPIC Level A evidence (strong). Multiple clinical trials and meta-analyses have demonstrated the association between CYP2C19 loss-of-function alleles and adverse cardiovascular outcomes in clopidogrel-treated patients.",
+      },
+    ],
+    audit: [
+      {
+        title: "Rule Applied",
+        content:
+          "CPIC Guideline for Clopidogrel and CYP2C19 (2013, updated 2022). Recommendation: Consider alternative antiplatelet therapy for intermediate and poor metabolizers.",
+      },
+      {
+        title: "Gene Detected",
+        content:
+          "CYP2C19 — Cytochrome P450 2C19. Located on chromosome 10q23.33. This enzyme is responsible for metabolizing approximately 10% of commonly prescribed drugs.",
+      },
+      {
+        title: "CPIC Evidence Level",
+        content:
+          "Level A — Prescribing action recommended. Strong evidence from well-designed studies indicates that genetic information should be used to change prescribing of the affected drug.",
+      },
+      {
+        title: "Deterministic Rule ID",
+        content:
+          "CPIC-CYP2C19-CLOP-2022-v2.1 — This rule was matched using deterministic logic, not probabilistic inference. The genotype-phenotype translation follows the standardized CPIC allele functionality table.",
+      },
+    ],
+  };
+}
+
 const Analysis = () => {
   const navigate = useNavigate();
+  const { setResult } = useAnalysisResult();
   const [file, setFile] = useState<File | null>(null);
   const [drug, setDrug] = useState("");
   const [loading, setLoading] = useState(false);
@@ -31,6 +94,8 @@ const Analysis = () => {
     setError("");
     setLoading(true);
     setTimeout(() => {
+      const result = buildResultFromAnalysis(drug, file.name);
+      setResult(result);
       setLoading(false);
       navigate("/results");
     }, 2000);

@@ -1,4 +1,5 @@
-import { Download, Shield, Dna, Brain, Activity } from "lucide-react";
+import { Link } from "react-router-dom";
+import { Download, Shield, Dna, Brain, Activity, FileSearch, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { PageContainer } from "@/components/layout/PageContainer";
@@ -7,66 +8,41 @@ import { ConfidenceBar } from "@/components/ConfidenceBar";
 import { VariantTable } from "@/components/VariantTable";
 import { ActivityBar } from "@/components/ActivityBar";
 import { ExplanationAccordion } from "@/components/ExplanationAccordion";
-
-// Demo data
-const resultData = {
-  drug: "Clopidogrel",
-  risk: "adjust" as const,
-  severity: "Intermediate metabolizer — reduced drug activation expected. Consider alternative antiplatelet therapy.",
-  confidence: 87,
-  gene: "CYP2C19",
-  diplotype: "*1/*2",
-  phenotype: "Intermediate Metabolizer",
-  activityLevel: 1,
-  variants: [
-    { rsid: "rs4244285", gene: "CYP2C19", allele: "*2", function: "No function" },
-    { rsid: "rs4986893", gene: "CYP2C19", allele: "*1", function: "Normal function" },
-    { rsid: "rs12248560", gene: "CYP2C19", allele: "*17", function: "Increased function" },
-  ],
-  explanations: [
-    {
-      title: "Clinical Recommendation",
-      content:
-        "Based on CYP2C19 intermediate metabolizer status, consider alternative antiplatelet therapy (e.g., prasugrel or ticagrelor) if no contraindications exist. Standard dose clopidogrel may result in reduced platelet inhibition.",
-    },
-    {
-      title: "Pharmacokinetic Impact",
-      content:
-        "CYP2C19 is the primary enzyme responsible for the bioactivation of clopidogrel. Patients with one loss-of-function allele (*2) demonstrate approximately 30% reduction in active metabolite formation compared to normal metabolizers.",
-    },
-    {
-      title: "Evidence Summary",
-      content:
-        "This recommendation is supported by CPIC Level A evidence (strong). Multiple clinical trials and meta-analyses have demonstrated the association between CYP2C19 loss-of-function alleles and adverse cardiovascular outcomes in clopidogrel-treated patients.",
-    },
-  ],
-  audit: [
-    {
-      title: "Rule Applied",
-      content: "CPIC Guideline for Clopidogrel and CYP2C19 (2013, updated 2022). Recommendation: Consider alternative antiplatelet therapy for intermediate and poor metabolizers.",
-    },
-    {
-      title: "Gene Detected",
-      content: "CYP2C19 — Cytochrome P450 2C19. Located on chromosome 10q23.33. This enzyme is responsible for metabolizing approximately 10% of commonly prescribed drugs.",
-    },
-    {
-      title: "CPIC Evidence Level",
-      content: "Level A — Prescribing action recommended. Strong evidence from well-designed studies indicates that genetic information should be used to change prescribing of the affected drug.",
-    },
-    {
-      title: "Deterministic Rule ID",
-      content: "CPIC-CYP2C19-CLOP-2022-v2.1 — This rule was matched using deterministic logic, not probabilistic inference. The genotype-phenotype translation follows the standardized CPIC allele functionality table.",
-    },
-  ],
-};
+import { useAnalysisResult } from "@/contexts/AnalysisResultContext";
 
 const Results = () => {
+  const { result } = useAnalysisResult();
+
+  if (!result) {
+    return (
+      <DashboardLayout>
+        <PageContainer>
+          <div className="fade-in-up mx-auto flex max-w-md flex-col items-center justify-center py-20 text-center">
+            <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-muted">
+              <FileSearch className="h-8 w-8 text-muted-foreground" />
+            </div>
+            <h2 className="mb-2 text-xl font-semibold text-foreground">No results yet</h2>
+            <p className="mb-8 text-sm text-muted-foreground">
+              Upload a VCF file and select a drug on the Analysis page to run pharmacogenomic analysis. Results will appear here after you complete that step.
+            </p>
+            <Button asChild className="gap-2 rounded-xl">
+              <Link to="/analysis">
+                Go to Analysis
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+            </Button>
+          </div>
+        </PageContainer>
+      </DashboardLayout>
+    );
+  }
+
   const handleDownloadJSON = () => {
-    const blob = new Blob([JSON.stringify(resultData, null, 2)], { type: "application/json" });
+    const blob = new Blob([JSON.stringify(result, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = "pgx-results.json";
+    a.download = "genex-results.json";
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -78,7 +54,11 @@ const Results = () => {
           <div className="fade-in-up">
             <h1 className="text-2xl font-bold text-foreground">Analysis Results</h1>
             <p className="mt-1 text-sm text-muted-foreground">
-              Drug: <span className="font-medium text-foreground">{resultData.drug}</span> · Gene: <span className="font-medium text-foreground">{resultData.gene}</span>
+              Drug: <span className="font-medium text-foreground">{result.drug}</span> · Gene:{" "}
+              <span className="font-medium text-foreground">{result.gene}</span>
+              {result.fileName && (
+                <> · File: <span className="font-medium text-foreground">{result.fileName}</span></>
+              )}
             </p>
           </div>
           <Button
@@ -94,7 +74,10 @@ const Results = () => {
 
         <div className="space-y-6">
           {/* Risk Assessment */}
-          <div className="clinical-card-hover fade-in-up border-l-4 border-l-warning" style={{ animationDelay: "50ms" }}>
+          <div
+            className="clinical-card-hover fade-in-up border-l-4 border-l-warning"
+            style={{ animationDelay: "50ms" }}
+          >
             <div className="flex items-start gap-4">
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-warning/10">
                 <Shield className="h-5 w-5 text-warning" />
@@ -102,10 +85,10 @@ const Results = () => {
               <div className="flex-1 space-y-3">
                 <div className="flex flex-wrap items-center gap-3">
                   <h2 className="text-lg font-semibold text-foreground">Risk Assessment</h2>
-                  <RiskBadge level={resultData.risk} size="lg" />
+                  <RiskBadge level={result.risk} size="lg" />
                 </div>
-                <p className="text-sm leading-relaxed text-muted-foreground">{resultData.severity}</p>
-                <ConfidenceBar value={resultData.confidence} label="Confidence" />
+                <p className="text-sm leading-relaxed text-muted-foreground">{result.severity}</p>
+                <ConfidenceBar value={result.confidence} label="Confidence" />
               </div>
             </div>
           </div>
@@ -121,16 +104,20 @@ const Results = () => {
               <div className="mb-4 grid grid-cols-3 gap-4">
                 <div>
                   <p className="text-xs text-muted-foreground">Gene</p>
-                  <p className="mt-0.5 font-mono text-sm font-semibold text-foreground">{resultData.gene}</p>
+                  <p className="mt-0.5 font-mono text-sm font-semibold text-foreground">
+                    {result.gene}
+                  </p>
                 </div>
                 <div>
                   <p className="text-xs text-muted-foreground">Diplotype</p>
-                  <p className="mt-0.5 font-mono text-sm font-semibold text-foreground">{resultData.diplotype}</p>
+                  <p className="mt-0.5 font-mono text-sm font-semibold text-foreground">
+                    {result.diplotype}
+                  </p>
                 </div>
                 <div>
                   <p className="text-xs text-muted-foreground">Phenotype</p>
                   <span className="mt-0.5 inline-block rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
-                    {resultData.phenotype}
+                    {result.phenotype}
                   </span>
                 </div>
               </div>
@@ -139,7 +126,7 @@ const Results = () => {
                 <p className="mb-3 text-xs font-medium uppercase tracking-wider text-muted-foreground">
                   Detected Variants
                 </p>
-                <VariantTable variants={resultData.variants} />
+                <VariantTable variants={result.variants} />
               </div>
             </div>
 
@@ -152,16 +139,16 @@ const Results = () => {
 
               <div className="mb-6">
                 <p className="mb-1 text-xs text-muted-foreground">Current Metabolizer Status</p>
-                <p className="text-lg font-semibold text-foreground">{resultData.phenotype}</p>
+                <p className="text-lg font-semibold text-foreground">{result.phenotype}</p>
               </div>
 
-              <ActivityBar activeLevel={resultData.activityLevel} />
+              <ActivityBar activeLevel={result.activityLevel} />
 
               <div className="mt-6 rounded-xl bg-muted/50 p-4">
                 <p className="text-xs leading-relaxed text-muted-foreground">
-                  Enzyme activity is classified based on the combination of allele functionality scores.
-                  An intermediate metabolizer has a reduced but not absent enzyme activity, which may
-                  affect drug metabolism rates.
+                  Enzyme activity is classified based on the combination of allele functionality
+                  scores. An intermediate metabolizer has a reduced but not absent enzyme activity,
+                  which may affect drug metabolism rates.
                 </p>
               </div>
             </div>
@@ -173,7 +160,7 @@ const Results = () => {
               <Brain className="h-4 w-4 text-primary" />
               <h3 className="text-sm font-semibold text-foreground">Clinical Explanation</h3>
             </div>
-            <ExplanationAccordion items={resultData.explanations} />
+            <ExplanationAccordion items={result.explanations} />
           </div>
 
           {/* Decision Transparency / Audit Trail */}
@@ -185,7 +172,7 @@ const Results = () => {
                 Audit Trail
               </span>
             </div>
-            <ExplanationAccordion items={resultData.audit} />
+            <ExplanationAccordion items={result.audit} />
           </div>
         </div>
       </PageContainer>

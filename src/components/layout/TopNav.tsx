@@ -1,7 +1,15 @@
 import { Link, useLocation } from "react-router-dom";
-import { Activity, Menu } from "lucide-react";
+import { Activity, Menu, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
+import { useAuth } from "@/contexts/AuthContext";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 const navItems = [
   { label: "Home", path: "/" },
@@ -12,6 +20,7 @@ const navItems = [
 export function TopNav() {
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { user, logout } = useAuth();
 
   return (
     <header className="sticky top-0 z-50 border-b border-border bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/80">
@@ -21,7 +30,7 @@ export function TopNav() {
             <Activity className="h-4 w-4 text-primary-foreground" />
           </div>
           <span className="text-sm font-semibold tracking-tight text-foreground">
-            PGx<span className="text-primary">CDS</span>
+            Gene<span className="text-primary">X</span>
           </span>
         </Link>
 
@@ -41,14 +50,42 @@ export function TopNav() {
           ))}
         </nav>
 
-        <Button
-          variant="ghost"
-          size="icon"
-          className="md:hidden"
-          onClick={() => setMobileOpen(!mobileOpen)}
-        >
-          <Menu className="h-5 w-5" />
-        </Button>
+        <div className="flex items-center gap-2">
+          {user && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="relative h-9 w-9 rounded-full">
+                  <Avatar className="h-9 w-9">
+                    <AvatarImage src={user.picture} alt={user.name} />
+                    <AvatarFallback className="bg-primary/10 text-primary text-xs">
+                      {user.name?.slice(0, 2).toUpperCase() ?? "U"}
+                    </AvatarFallback>
+                  </Avatar>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <div className="px-2 py-1.5 text-sm font-medium text-foreground">
+                  {user.name}
+                </div>
+                <div className="px-2 text-xs text-muted-foreground truncate">
+                  {user.email}
+                </div>
+                <DropdownMenuItem onClick={logout} className="cursor-pointer text-muted-foreground">
+                  <LogOut className="mr-2 h-4 w-4" />
+                  Sign out
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="md:hidden"
+            onClick={() => setMobileOpen(!mobileOpen)}
+          >
+            <Menu className="h-5 w-5" />
+          </Button>
+        </div>
       </div>
 
       {mobileOpen && (

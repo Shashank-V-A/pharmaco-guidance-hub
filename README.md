@@ -32,7 +32,11 @@ cd <YOUR_PROJECT_NAME>
 # Step 3: Install the necessary dependencies.
 npm i
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
+# Step 4: Configure Google OAuth (required for sign-in).
+# Copy `.env.example` to `.env` and set `VITE_GOOGLE_CLIENT_ID` with your Google Cloud OAuth 2.0 Web client ID.
+# Create credentials at https://console.cloud.google.com/apis/credentials and add `http://localhost:8080` to authorized JavaScript origins.
+
+# Step 5: Start the development server with auto-reloading and an instant preview.
 npm run dev
 ```
 

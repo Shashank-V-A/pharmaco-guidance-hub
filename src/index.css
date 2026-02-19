@@ -55,6 +55,9 @@
     --sidebar-ring: 217 91% 53%;
 
     --text-secondary: 215 14% 34%;
+    --grid-line: 214 32% 82%;
+    --grid-line-opacity: 0.85;
+    --grid-spacing: 24px;
   }
 
   .dark {
@@ -85,6 +88,9 @@
     --sidebar-accent-foreground: 210 40% 98%;
     --sidebar-border: 217 33% 17%;
     --sidebar-ring: 217 91% 60%;
+    --grid-line: 217 33% 35%;
+    --grid-line-opacity: 0.65;
+    --grid-spacing: 24px;
   }
 }
 
@@ -95,6 +101,39 @@
 
   body {
     @apply bg-background text-foreground font-sans antialiased;
+    min-height: 100vh;
+    /* Grid layer + cover for medtech theme (all pages) */
+    background-color: hsl(var(--background));
+    background-image:
+      /* Grid cover: visible radial fade, grid remains clearly visible */
+      radial-gradient(
+        ellipse 140% 120% at 50% -10%,
+        hsl(var(--background) / 0.72) 0%,
+        hsl(var(--background) / 0.35) 45%,
+        hsl(var(--background) / 0.08) 100%
+      ),
+      /* Horizontal grid lines */
+      repeating-linear-gradient(
+        0deg,
+        transparent 0,
+        transparent calc(var(--grid-spacing) - 1px),
+        hsl(var(--grid-line) / var(--grid-line-opacity)) calc(var(--grid-spacing) - 1px),
+        hsl(var(--grid-line) / var(--grid-line-opacity)) var(--grid-spacing)
+      ),
+      /* Vertical grid lines */
+      repeating-linear-gradient(
+        90deg,
+        transparent 0,
+        transparent calc(var(--grid-spacing) - 1px),
+        hsl(var(--grid-line) / var(--grid-line-opacity)) calc(var(--grid-spacing) - 1px),
+        hsl(var(--grid-line) / var(--grid-line-opacity)) var(--grid-spacing)
+      );
+    background-size:
+      100% 100%,
+      var(--grid-spacing) var(--grid-spacing),
+      var(--grid-spacing) var(--grid-spacing);
+    background-position: 0 0, 0 0, 0 0;
+    background-attachment: scroll;
   }
 
   h1, h2, h3, h4, h5, h6 {

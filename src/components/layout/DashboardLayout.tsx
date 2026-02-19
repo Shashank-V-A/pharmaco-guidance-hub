@@ -5,7 +5,7 @@ import { Footer } from "./Footer";
 
 export function DashboardLayout({ children }: { children: ReactNode }) {
   return (
-    <div className="flex min-h-screen flex-col bg-background">
+    <div className="flex min-h-screen flex-col">
       <TopNav />
       <div className="flex flex-1">
         <SidebarNav />
