@@ -14,7 +14,7 @@ import NotFound from "./pages/NotFound";
 import Login from "./pages/Login";
 
 const queryClient = new QueryClient();
-const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID ?? "";
+const googleClientId = (import.meta.env.VITE_GOOGLE_CLIENT_ID ?? "").toString().trim();
 
 const AppContent = () => (
   <AuthProvider>

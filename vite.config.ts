@@ -5,7 +5,7 @@ import { componentTagger } from "lovable-tagger";
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
-  envDir: "src", // load .env from src/ so VITE_GOOGLE_CLIENT_ID is available
+  envDir: ".", // load .env from project root
   server: {
     host: "::",
     port: 8080,
@@ -18,5 +18,8 @@ export default defineConfig(({ mode }) => ({
     alias: {
       "@": path.resolve(__dirname, "./src"),
     },
+  },
+  optimizeDeps: {
+    include: ["tesseract.js"],
   },
 }));

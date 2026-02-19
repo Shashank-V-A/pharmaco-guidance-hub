@@ -4,7 +4,7 @@ import { GoogleLogin } from "@react-oauth/google";
 import { Dna, Shield, BarChart3, ArrowRight } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 
-const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+const clientId = (import.meta.env.VITE_GOOGLE_CLIENT_ID ?? "").toString().trim() || undefined;
 
 const features = [
   {
@@ -49,8 +49,11 @@ const Login = () => {
           <p className="mt-3 text-xs text-muted-foreground">
             Create a project in Google Cloud Console, enable the Google+ API, and create an OAuth 2.0
             Client ID (Web application). Add{" "}
-            <code className="rounded bg-muted px-1 font-mono text-xs">http://localhost:8080</code> to
-            authorized JavaScript origins.
+            <code className="rounded bg-muted px-1 font-mono text-xs">http://localhost:8081</code>
+            (and 8080 if needed) to authorized JavaScript origins.
+          </p>
+          <p className="mt-2 text-xs text-muted-foreground">
+            If .env is already set, restart the dev server (<code className="rounded bg-muted px-1 font-mono text-xs">npm run dev</code>) so Vite picks up the value.
           </p>
         </div>
       </div>
