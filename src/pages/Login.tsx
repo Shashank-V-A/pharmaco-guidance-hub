@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { GoogleLogin } from "@react-oauth/google";
-import { Activity, Dna, Shield, BarChart3, ArrowRight } from "lucide-react";
+import { Dna, Shield, BarChart3, ArrowRight } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 
 const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
@@ -70,11 +70,13 @@ const Login = () => {
 
       {/* Top-left branding */}
       <header className="relative z-10 flex items-center gap-2 px-6 py-5 sm:px-8">
-        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary">
-          <Activity className="h-4 w-4 text-primary-foreground" />
-        </div>
-        <span className="text-lg font-semibold tracking-tight text-foreground">
-          Gene<span className="text-primary">X</span>
+        <img
+          src="/logo.png"
+          alt="GeneX"
+          className="h-9 w-9 object-contain"
+        />
+        <span className="text-lg font-semibold tracking-tight">
+          <span className="text-gene-red">Gene</span><span className="text-primary">X</span>
         </span>
       </header>
 
@@ -87,9 +89,10 @@ const Login = () => {
           </p>
 
           {/* Main heading */}
-          <h1 className="mb-5 text-3xl font-bold leading-tight tracking-tight text-foreground sm:text-4xl md:text-5xl">
-            Precision Drug Safety Through{" "}
-            <span className="text-primary">Genomics</span>
+          <h1 className="mb-5 text-3xl font-bold leading-tight tracking-tight sm:text-4xl md:text-5xl">
+            <span className="text-gene-red">Precision Drug Safety</span>
+            {" "}
+            <span className="text-primary">Through Genomics</span>
           </h1>
 
           {/* Description */}

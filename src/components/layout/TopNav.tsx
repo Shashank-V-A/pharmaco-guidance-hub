@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
-import { Activity, Menu, LogOut } from "lucide-react";
+import { Menu, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
@@ -26,11 +26,13 @@ export function TopNav() {
     <header className="sticky top-0 z-50 border-b border-border bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/80">
       <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
         <Link to="/" className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
-            <Activity className="h-4 w-4 text-primary-foreground" />
-          </div>
-          <span className="text-sm font-semibold tracking-tight text-foreground">
-            Gene<span className="text-primary">X</span>
+          <img
+            src="/logo.png"
+            alt="GeneX"
+            className="h-8 w-8 object-contain"
+          />
+          <span className="text-sm font-semibold tracking-tight">
+            <span className="text-gene-red">Gene</span><span className="text-primary">X</span>
           </span>
         </Link>
 

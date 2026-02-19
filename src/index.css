@@ -7,25 +7,30 @@
 @layer base {
   :root {
     --background: 210 40% 98%;
-    --foreground: 222 47% 11%;
+    /* Red & blue text palette: main text = dark blue */
+    --foreground: 217 85% 28%;
 
     --card: 0 0% 100%;
-    --card-foreground: 222 47% 11%;
+    --card-foreground: 217 85% 28%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 222 47% 11%;
+    --popover-foreground: 217 85% 28%;
 
+    /* Blue accent (genes / primary actions) */
     --primary: 217 91% 53%;
     --primary-foreground: 0 0% 100%;
 
+    /* Gene red for contrast with blue */
+    --gene-red: 0 72% 48%;
+
     --secondary: 210 40% 96%;
-    --secondary-foreground: 222 47% 11%;
+    --secondary-foreground: 217 85% 28%;
 
     --muted: 210 40% 96%;
-    --muted-foreground: 215 16% 65%;
+    --muted-foreground: 217 50% 45%;
 
     --accent: 210 40% 96%;
-    --accent-foreground: 222 47% 11%;
+    --accent-foreground: 217 85% 28%;
 
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
@@ -54,7 +59,7 @@
     --sidebar-border: 214 32% 91%;
     --sidebar-ring: 217 91% 53%;
 
-    --text-secondary: 215 14% 34%;
+    --text-secondary: 217 55% 38%;
     --grid-line: 214 32% 82%;
     --grid-line-opacity: 0.85;
     --grid-spacing: 24px;
@@ -91,6 +96,7 @@
     --grid-line: 217 33% 35%;
     --grid-line-opacity: 0.65;
     --grid-spacing: 24px;
+    --gene-red: 0 65% 55%;
   }
 }
 
@@ -152,6 +158,10 @@
 
   .text-clinical-secondary {
     @apply text-[hsl(var(--text-secondary))];
+  }
+
+  .text-gene-red {
+    color: hsl(var(--gene-red));
   }
 
   .fade-in {
