@@ -34,7 +34,7 @@ const RISK_CARD_STYLES: Record<RiskLevel, { border: string; iconBg: string; icon
 };
 
 const Results = () => {
-  const { result } = useAnalysisResult();
+  const { result, apiResponse } = useAnalysisResult();
   const [copied, setCopied] = useState(false);
 
   if (!result) {
@@ -62,7 +62,8 @@ const Results = () => {
   }
 
   const handleDownloadJSON = () => {
-    const blob = new Blob([JSON.stringify(result, null, 2)], { type: "application/json" });
+    const payload = apiResponse ?? result;
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
@@ -72,8 +73,9 @@ const Results = () => {
   };
 
   const handleCopyJSON = async () => {
+    const payload = apiResponse ?? result;
     try {
-      await navigator.clipboard.writeText(JSON.stringify(result, null, 2));
+      await navigator.clipboard.writeText(JSON.stringify(payload, null, 2));
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
