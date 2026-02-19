@@ -16,48 +16,56 @@ import Login from "./pages/Login";
 const queryClient = new QueryClient();
 const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID ?? "";
 
+const AppContent = () => (
+  <AuthProvider>
+    <BrowserRouter>
+      <AnalysisResultProvider>
+        <Routes>
+          <Route path="/login" element={<Login />} />
+          <Route
+            path="/"
+            element={
+              <ProtectedRoute>
+                <Index />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/analysis"
+            element={
+              <ProtectedRoute>
+                <Analysis />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/results"
+            element={
+              <ProtectedRoute>
+                <Results />
+              </ProtectedRoute>
+            }
+          />
+          <Route path="/404" element={<NotFound />} />
+          <Route path="*" element={<Navigate to="/404" replace />} />
+        </Routes>
+      </AnalysisResultProvider>
+    </BrowserRouter>
+  </AuthProvider>
+);
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <Toaster />
       <Sonner />
-      <GoogleOAuthProvider clientId={googleClientId}>
-        <AuthProvider>
-          <BrowserRouter>
-            <AnalysisResultProvider>
-            <Routes>
-              <Route path="/login" element={<Login />} />
-              <Route
-                path="/"
-                element={
-                  <ProtectedRoute>
-                    <Index />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/analysis"
-                element={
-                  <ProtectedRoute>
-                    <Analysis />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/results"
-                element={
-                  <ProtectedRoute>
-                    <Results />
-                  </ProtectedRoute>
-                }
-              />
-              <Route path="/404" element={<NotFound />} />
-              <Route path="*" element={<Navigate to="/404" replace />} />
-            </Routes>
-            </AnalysisResultProvider>
-          </BrowserRouter>
-        </AuthProvider>
-      </GoogleOAuthProvider>
+      {googleClientId ? (
+        <GoogleOAuthProvider clientId={googleClientId}>
+          <AppContent />
+        </GoogleOAuthProvider>
+      ) : (
+        <AppContent />
+      )}
     </TooltipProvider>
   </QueryClientProvider>
 );

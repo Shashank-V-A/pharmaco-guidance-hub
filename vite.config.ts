@@ -5,6 +5,7 @@ import { componentTagger } from "lovable-tagger";
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
+  envDir: "src", // load .env from src/ so VITE_GOOGLE_CLIENT_ID is available
   server: {
     host: "::",
     port: 8080,

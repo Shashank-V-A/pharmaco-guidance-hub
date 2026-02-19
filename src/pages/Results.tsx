@@ -1,5 +1,6 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
-import { Download, Shield, Dna, Brain, Activity, FileSearch, ArrowRight } from "lucide-react";
+import { Download, Shield, Dna, Brain, Activity, FileSearch, ArrowRight, Copy, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { PageContainer } from "@/components/layout/PageContainer";
@@ -9,9 +10,18 @@ import { VariantTable } from "@/components/VariantTable";
 import { ActivityBar } from "@/components/ActivityBar";
 import { ExplanationAccordion } from "@/components/ExplanationAccordion";
 import { useAnalysisResult } from "@/contexts/AnalysisResultContext";
+import type { RiskLevel } from "@/components/RiskBadge";
+
+const RISK_CARD_STYLES: Record<RiskLevel, { border: string; iconBg: string; iconColor: string }> = {
+  safe: { border: "border-l-success", iconBg: "bg-success/10", iconColor: "text-success" },
+  adjust: { border: "border-l-warning", iconBg: "bg-warning/10", iconColor: "text-warning" },
+  toxic: { border: "border-l-destructive", iconBg: "bg-destructive/10", iconColor: "text-destructive" },
+  ineffective: { border: "border-l-destructive", iconBg: "bg-destructive/10", iconColor: "text-destructive" },
+};
 
 const Results = () => {
   const { result } = useAnalysisResult();
+  const [copied, setCopied] = useState(false);
 
   if (!result) {
     return (
@@ -23,7 +33,7 @@ const Results = () => {
             </div>
             <h2 className="mb-2 text-xl font-semibold text-foreground">No results yet</h2>
             <p className="mb-8 text-sm text-muted-foreground">
-              Upload a VCF file and select a drug on the Analysis page to run pharmacogenomic analysis. Results will appear here after you complete that step.
+              Identify a medicine from a photo and upload a DNA or blood report on the Analysis page. Results will appear here after you run the analysis.
             </p>
             <Button asChild className="gap-2 rounded-xl">
               <Link to="/analysis">
@@ -47,6 +57,18 @@ const Results = () => {
     URL.revokeObjectURL(url);
   };
 
+  const handleCopyJSON = async () => {
+    try {
+      await navigator.clipboard.writeText(JSON.stringify(result, null, 2));
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      setCopied(false);
+    }
+  };
+
+  const riskStyle = RISK_CARD_STYLES[result.risk];
+
   return (
     <DashboardLayout>
       <PageContainer>
@@ -61,26 +83,37 @@ const Results = () => {
               )}
             </p>
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleDownloadJSON}
-            className="fade-in gap-2 rounded-xl self-start"
-          >
-            <Download className="h-4 w-4" />
-            Export JSON
-          </Button>
+          <div className="flex gap-2 self-start">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleCopyJSON}
+              className="fade-in gap-2 rounded-xl"
+            >
+              {copied ? <Check className="h-4 w-4 text-success" /> : <Copy className="h-4 w-4" />}
+              {copied ? "Copied" : "Copy JSON"}
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleDownloadJSON}
+              className="fade-in gap-2 rounded-xl"
+            >
+              <Download className="h-4 w-4" />
+              Download JSON
+            </Button>
+          </div>
         </div>
 
         <div className="space-y-6">
-          {/* Risk Assessment */}
+          {/* Risk Assessment — color-coded: Green = Safe, Yellow = Adjust, Red = Toxic/Ineffective */}
           <div
-            className="clinical-card-hover fade-in-up border-l-4 border-l-warning"
+            className={`clinical-card-hover fade-in-up border-l-4 ${riskStyle.border}`}
             style={{ animationDelay: "50ms" }}
           >
             <div className="flex items-start gap-4">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-warning/10">
-                <Shield className="h-5 w-5 text-warning" />
+              <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${riskStyle.iconBg}`}>
+                <Shield className={`h-5 w-5 ${riskStyle.iconColor}`} />
               </div>
               <div className="flex-1 space-y-3">
                 <div className="flex flex-wrap items-center gap-3">
