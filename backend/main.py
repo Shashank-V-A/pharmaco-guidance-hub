@@ -20,6 +20,8 @@ from backend.config import (
 )
 from backend.models.schemas import (
     AnalyzeResponse,
+    AuditTrail,
+    ConfidenceBreakdown,
     RiskAssessment,
     PharmacogenomicProfile,
     ClinicalRecommendation,
@@ -34,6 +36,8 @@ from backend.services import (
     compute_confidence,
     fetch_llm_explanation,
 )
+from backend.services.report_service import build_pdf
+from fastapi.responses import Response
 
 app = FastAPI(
     title="Pharmacogenomics Analysis API",
@@ -47,6 +51,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# In-memory store of last successful analysis per patient_id for PDF report (no persistence)
+_report_store: dict = {}
 
 
 # --- RULE 4: patient_id never null ---
@@ -75,6 +82,7 @@ async def analyze(
     file: UploadFile = File(..., description="VCF file (max 5MB)"),
     drug_name: str = Form(..., description="One of: CODEINE, WARFARIN, CLOPIDOGREL, SIMVASTATIN, AZATHIOPRINE, FLUOROURACIL"),
     patient_id: Optional[str] = Form(None),
+    explanation_mode: Optional[str] = Form("clinician", description="clinician | research"),
 ):
     """
     Strict flow: validate → parse VCF → [abort 400 if parse fail] → phenotype → rule engine → [abort 422 if rule fail] → confidence → LLM (or fallback) → validate → return full schema.
@@ -133,8 +141,8 @@ async def analyze(
         return _abort_rule_engine_failed("Phenotype mapping not found for drug/gene")
 
     # RULE 5 state: all true so far (parsing, phenotype, rule_engine). Now confidence + LLM.
-    # RULE 8: Confidence only in success block
-    confidence_score = compute_confidence(
+    # RULE 8: Confidence only in success block; returns (score, breakdown)
+    confidence_score, confidence_breakdown = compute_confidence(
         vcf_parsing_success=True,
         gene_coverage=gene_coverage,
         rule_engine_status="success",
@@ -146,7 +154,7 @@ async def analyze(
     dose_adjustment = clinical_action or "See CPIC guideline."
     alternative_options = "See CPIC guideline for alternatives if dose adjustment not suitable."
 
-    # RULE 9: LLM (or fallback) only when rule_engine succeeded
+    # RULE 9: LLM (or fallback) only when rule_engine succeeded; explanation_mode affects prompt only
     llm_payload = fetch_llm_explanation(
         drug=drug_upper,
         gene=gene,
@@ -155,6 +163,7 @@ async def analyze(
         severity=severity,
         guideline_reference=guideline_reference,
         detected_variants=variants,
+        explanation_mode=explanation_mode or "clinician",
     )
 
     detected_variants_schema = [
@@ -179,6 +188,20 @@ async def analyze(
             status_code=500,
             content={"error": "Internal consistency error", "details": "Quality metrics invalid before response build"},
         )
+
+    breakdown_schema = ConfidenceBreakdown(
+        evidence_weight=confidence_breakdown.get("evidence_weight", 0.0),
+        variant_completeness=confidence_breakdown.get("variant_completeness", 0.0),
+        parsing_integrity=confidence_breakdown.get("parsing_integrity", 0.0),
+        diplotype_clarity=confidence_breakdown.get("diplotype_clarity", 0.0),
+    )
+    audit_trail = AuditTrail(
+        gene_detected=gene,
+        phenotype_determined=phenotype,
+        rule_applied=risk_label or "CPIC rule",
+        cpic_evidence_level="A",
+        confidence_breakdown=breakdown_schema,
+    )
 
     payload = {
         "patient_id": resolved_patient_id,
@@ -207,6 +230,7 @@ async def analyze(
             clinical_rationale=llm_payload.get("clinical_rationale", ""),
         ),
         "quality_metrics": quality_metrics,
+        "audit_trail": audit_trail,
     }
 
     # RULE 7: Validate with Pydantic before return; 500 on validation failure
@@ -218,7 +242,32 @@ async def analyze(
             content={"error": "Response validation failed", "details": e.errors()},
         )
 
+    # Store last successful analysis for PDF report (keyed by patient_id)
+    report_data = {
+        "patient_id": resolved_patient_id,
+        "drug": drug_upper,
+        "timestamp": payload["timestamp"],
+        "risk_assessment": {"risk_label": risk_label, "severity": severity, "confidence_score": confidence_score},
+        "pharmacogenomic_profile": {"gene": gene, "diplotype": diplotype, "phenotype": phenotype},
+        "clinical_recommendation": {"dose_adjustment": dose_adjustment, "alternative_options": alternative_options, "guideline_reference": guideline_reference},
+    }
+    _report_store[resolved_patient_id] = report_data
+
     return response
+
+
+@app.get("/report/{patient_id}")
+def get_report(patient_id: str):
+    """Return PDF clinical report for the last successful analysis for this patient_id, or 404."""
+    if not patient_id or patient_id not in _report_store:
+        return JSONResponse(status_code=404, content={"error": "No report found for this patient"})
+    report_data = _report_store[patient_id]
+    pdf_bytes = build_pdf(report_data)
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="clinical-report-{patient_id}.pdf"'},
+    )
 
 
 @app.get("/health")

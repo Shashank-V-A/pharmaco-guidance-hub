@@ -1,15 +1,17 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { Download, Shield, Dna, Brain, Activity, FileSearch, ArrowRight, Copy, Check, FileJson, FileText } from "lucide-react";
+import { Download, Shield, Dna, Brain, Activity, FileSearch, ArrowRight, Copy, Check, FileJson, FileText, ChevronDown, ChevronUp, Code } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { RiskBadge } from "@/components/RiskBadge";
 import { ConfidenceBar } from "@/components/ConfidenceBar";
+import { ConfidenceBreakdownBar } from "@/components/ConfidenceBreakdownBar";
 import { VariantTable } from "@/components/VariantTable";
 import { ActivityBar } from "@/components/ActivityBar";
 import { ExplanationAccordion } from "@/components/ExplanationAccordion";
 import { useAnalysisResult } from "@/contexts/AnalysisResultContext";
+import { fetchReport } from "@/lib/api";
 import type { RiskLevel } from "@/components/RiskBadge";
 import type { LLMContent } from "@/types/analysis";
 
@@ -36,6 +38,10 @@ const RISK_CARD_STYLES: Record<RiskLevel, { border: string; iconBg: string; icon
 const Results = () => {
   const { result, apiResponse } = useAnalysisResult();
   const [copied, setCopied] = useState(false);
+  const [auditOpen, setAuditOpen] = useState(false);
+  const [devViewOpen, setDevViewOpen] = useState(false);
+  const [reportLoading, setReportLoading] = useState(false);
+  const [reportError, setReportError] = useState<string | null>(null);
 
   if (!result) {
     return (
@@ -83,7 +89,31 @@ const Results = () => {
     }
   };
 
+  const handleDownloadReport = async () => {
+    const patientId = result.patientId ?? apiResponse?.patient_id;
+    if (!patientId) {
+      setReportError("Patient ID not available for report.");
+      return;
+    }
+    setReportError(null);
+    setReportLoading(true);
+    try {
+      const blob = await fetchReport(patientId);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `clinical-report-${patientId}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      setReportError(e instanceof Error ? e.message : "Failed to download report");
+    } finally {
+      setReportLoading(false);
+    }
+  };
+
   const riskStyle = RISK_CARD_STYLES[result.risk];
+  const showGuardrail = result.confidence < 50;
 
   return (
     <DashboardLayout>
@@ -99,7 +129,23 @@ const Results = () => {
               )}
             </p>
           </div>
-          <div className="flex gap-2 self-start">
+          <div className="flex flex-wrap gap-2 self-start">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleDownloadReport}
+              disabled={reportLoading || !(result.patientId ?? apiResponse?.patient_id)}
+              className="fade-in gap-2 rounded-xl"
+            >
+              {reportLoading ? (
+                <>Loading…</>
+              ) : (
+                <>
+                  <FileText className="h-4 w-4" />
+                  Download Clinical Report
+                </>
+              )}
+            </Button>
             <Button
               variant="outline"
               size="sm"
@@ -137,10 +183,30 @@ const Results = () => {
                   <RiskBadge level={result.risk} size="lg" />
                 </div>
                 <p className="text-sm leading-relaxed text-muted-foreground">{result.severity}</p>
-                <ConfidenceBar value={result.confidence} label="Confidence" />
+                {result.confidenceBreakdown ? (
+                  <ConfidenceBreakdownBar
+                    totalPercent={result.confidence}
+                    breakdown={result.confidenceBreakdown}
+                    label="Confidence"
+                  />
+                ) : (
+                  <ConfidenceBar value={result.confidence} label="Confidence" />
+                )}
               </div>
             </div>
           </div>
+
+          {showGuardrail && (
+            <div className="fade-in-up rounded-2xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-600 dark:bg-amber-950/40 dark:text-amber-200">
+              Insufficient genetic evidence for confident recommendation.
+            </div>
+          )}
+
+          {reportError && (
+            <div className="fade-in-up rounded-2xl border border-destructive/50 bg-destructive/10 px-4 py-2.5 text-sm text-destructive">
+              {reportError}
+            </div>
+          )}
 
           {/* LLM-generated summary and explanations */}
           {result.llm && (
@@ -294,14 +360,41 @@ const Results = () => {
 
           {/* Decision Transparency / Audit Trail */}
           <div className="clinical-card fade-in-up" style={{ animationDelay: "250ms" }}>
-            <div className="mb-4 flex items-center gap-2">
-              <Shield className="h-4 w-4 text-primary" />
-              <h3 className="text-sm font-semibold text-foreground">Decision Transparency</h3>
-              <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
-                Audit Trail
-              </span>
-            </div>
-            <ExplanationAccordion items={result.audit} />
+            <button
+              type="button"
+              className="mb-4 flex w-full items-center justify-between gap-2 text-left"
+              onClick={() => setAuditOpen((o) => !o)}
+            >
+              <div className="flex items-center gap-2">
+                <Shield className="h-4 w-4 text-primary" />
+                <h3 className="text-sm font-semibold text-foreground">Decision Transparency</h3>
+                <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+                  Audit Trail
+                </span>
+              </div>
+              {auditOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+            </button>
+            {auditOpen && <ExplanationAccordion items={result.audit} />}
+          </div>
+
+          {/* Developer JSON view */}
+          <div className="clinical-card fade-in-up" style={{ animationDelay: "280ms" }}>
+            <button
+              type="button"
+              className="mb-4 flex w-full items-center justify-between gap-2 text-left"
+              onClick={() => setDevViewOpen((o) => !o)}
+            >
+              <div className="flex items-center gap-2">
+                <Code className="h-4 w-4 text-primary" />
+                <h3 className="text-sm font-semibold text-foreground">Developer View</h3>
+              </div>
+              {devViewOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+            </button>
+            {devViewOpen && (
+              <pre className="max-h-96 overflow-auto rounded-xl border border-border bg-muted/30 p-4 text-left text-xs font-mono text-foreground">
+                {JSON.stringify(apiResponse ?? result, null, 2)}
+              </pre>
+            )}
           </div>
         </div>
       </PageContainer>

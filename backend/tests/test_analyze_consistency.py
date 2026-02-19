@@ -90,6 +90,32 @@ def test_success_returns_full_schema():
         assert body["quality_metrics"]["vcf_parsing_success"] is True
         assert body["quality_metrics"]["rule_engine_status"] == "success"
         assert "risk_label" in body["risk_assessment"]
+        # audit_trail present only on successful analyze
+        assert "audit_trail" in body
+        assert body["audit_trail"] is not None
+        assert "gene_detected" in body["audit_trail"]
+        assert "confidence_breakdown" in body["audit_trail"]
+
+
+def test_audit_trail_absent_on_4xx():
+    """audit_trail is not present on 400/422 responses (only on full schema success)."""
+    response400 = client.post(
+        "/analyze",
+        data={"drug_name": "CODEINE"},
+        files={"file": ("x.txt", io.BytesIO(b"x"), "text/plain")},
+    )
+    assert response400.status_code == 400
+    body400 = response400.json()
+    assert "audit_trail" not in body400
+
+    response422 = client.post(
+        "/analyze",
+        data={"drug_name": "INVALID_DRUG"},
+        files={"file": ("test.vcf", io.BytesIO(VALID_VCF_MINIMAL), "text/vcf")},
+    )
+    assert response422.status_code == 422
+    body422 = response422.json()
+    assert "audit_trail" not in body422
 
 
 def test_no_risk_label_when_rule_engine_status_error():

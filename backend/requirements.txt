@@ -1,8 +1,13 @@
-# FastAPI backend - Python 3.11
+# FastAPI backend - Python 3.11+
 fastapi>=0.109.0
 uvicorn[standard]>=0.27.0
 python-multipart>=0.0.6
 pydantic>=2.5.0
-cyvcf2>=0.30.0
 httpx>=0.26.0
 pytest>=7.4.0
+reportlab>=4.0.0
+
+# Optional: cyvcf2 for faster VCF parsing (requires C build on Windows; often fails).
+# If not installed, the backend uses the built-in pure-Python VCF parser.
+# Uncomment to use when you have a working build environment (e.g. Linux, or Windows with Visual Studio Build Tools):
+# cyvcf2>=0.30.0

@@ -5,6 +5,23 @@ import type { AnalysisResult } from "@/types/analysis";
 
 const API_BASE = (import.meta.env.VITE_API_BASE_URL ?? "").replace(/\/$/, "");
 
+/** Optional confidence breakdown (sum equals confidence_score). */
+export interface ConfidenceBreakdownApi {
+  evidence_weight: number;
+  variant_completeness: number;
+  parsing_integrity: number;
+  diplotype_clarity: number;
+}
+
+/** Optional audit trail (only on successful analyze). */
+export interface AuditTrailApi {
+  gene_detected: string;
+  phenotype_determined: string;
+  rule_applied: string;
+  cpic_evidence_level: string;
+  confidence_breakdown?: ConfidenceBreakdownApi | null;
+}
+
 export interface AnalyzeApiResponse {
   patient_id: string; // Backend never null; UUID if not provided
   drug: string;
@@ -41,12 +58,14 @@ export interface AnalyzeApiResponse {
     gene_coverage: string;
     rule_engine_status: string;
   };
+  audit_trail?: AuditTrailApi | null;
 }
 
 export async function analyzeVcf(
   file: File,
   drugName: string,
-  patientId?: string | null
+  patientId?: string | null,
+  explanationMode?: "clinician" | "research"
 ): Promise<AnalyzeApiResponse> {
   const form = new FormData();
   form.append("file", file);
@@ -54,6 +73,7 @@ export async function analyzeVcf(
   if (patientId != null && patientId !== "") {
     form.append("patient_id", patientId);
   }
+  form.append("explanation_mode", explanationMode === "research" ? "research" : "clinician");
   const url = `${API_BASE}/analyze`;
   const res = await fetch(url, {
     method: "POST",
@@ -71,6 +91,17 @@ export async function analyzeVcf(
     throw new Error(typeof detail === "string" ? detail : JSON.stringify(detail));
   }
   return res.json() as Promise<AnalyzeApiResponse>;
+}
+
+/** Download clinical report PDF for a patient (last successful analysis). */
+export async function fetchReport(patientId: string): Promise<Blob> {
+  const url = `${API_BASE}/report/${encodeURIComponent(patientId)}`;
+  const res = await fetch(url);
+  if (!res.ok) {
+    if (res.status === 404) throw new Error("No report found for this patient");
+    throw new Error("Failed to download report");
+  }
+  return res.blob();
 }
 
 /** Map backend risk_label to frontend RiskLevel */
@@ -107,12 +138,35 @@ export function mapApiResponseToResult(
     allele: v.star ?? "—",
     function: "—",
   }));
+  const audit = api.audit_trail
+    ? [
+        { title: "Gene detected", content: api.audit_trail.gene_detected },
+        { title: "Phenotype determined", content: api.audit_trail.phenotype_determined },
+        { title: "Rule applied", content: api.audit_trail.rule_applied },
+        { title: "CPIC evidence level", content: api.audit_trail.cpic_evidence_level },
+        ...(api.quality_metrics?.gene_coverage
+          ? [{ title: "Gene coverage", content: api.quality_metrics.gene_coverage }]
+          : []),
+      ]
+    : [
+        { title: "Guideline", content: rec.guideline_reference },
+        { title: "Gene coverage", content: api.quality_metrics?.gene_coverage ?? "—" },
+      ];
   return {
     drug: api.drug,
     fileName,
+    patientId: api.patient_id,
     risk: riskLabelToLevel(risk.risk_label),
     severity: risk.severity + ": " + rec.dose_adjustment,
     confidence: Math.round((risk.confidence_score ?? 0) * 100),
+    confidenceBreakdown: api.audit_trail?.confidence_breakdown
+      ? {
+          evidence_weight: api.audit_trail.confidence_breakdown.evidence_weight,
+          variant_completeness: api.audit_trail.confidence_breakdown.variant_completeness,
+          parsing_integrity: api.audit_trail.confidence_breakdown.parsing_integrity,
+          diplotype_clarity: api.audit_trail.confidence_breakdown.diplotype_clarity,
+        }
+      : undefined,
     gene: profile.gene,
     diplotype: profile.diplotype,
     phenotype: profile.phenotype,
@@ -122,10 +176,7 @@ export function mapApiResponseToResult(
       { title: "Dose adjustment", content: rec.dose_adjustment },
       { title: "Alternative options", content: rec.alternative_options },
     ],
-    audit: [
-      { title: "Guideline", content: rec.guideline_reference },
-      { title: "Gene coverage", content: api.quality_metrics?.gene_coverage ?? "—" },
-    ],
+    audit,
     llm: {
       summary: llm.summary,
       mechanicalExplanation: llm.mechanism_explanation,

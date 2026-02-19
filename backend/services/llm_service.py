@@ -54,9 +54,11 @@ def fetch_llm_explanation(
     severity: str,
     guideline_reference: str,
     detected_variants: List[Dict[str, Any]],
+    explanation_mode: str = "clinician",
 ) -> Dict[str, Any]:
     """
     Call Grok API for explanation only. Context is read-only; LLM must not change risk/severity.
+    explanation_mode: "clinician" (short, action-focused) | "research" (detailed mechanism, variant impact, PK).
     Returns dict with keys: summary, mechanism_explanation, variant_references, clinical_rationale.
     """
     if not GROK_API_KEY or not GROK_API_KEY.strip():
@@ -66,6 +68,22 @@ def fetch_llm_explanation(
         f"  - {v.get('gene', '')} {v.get('rs', '')} {v.get('genotype', '')}"
         for v in detected_variants[:20]
     )
+    mode = "research" if (explanation_mode or "").strip().lower() == "research" else "clinician"
+    if mode == "clinician":
+        instruction = """Respond with a single JSON object with exactly these keys (no other text):
+- "summary": 1-2 short sentences: what this means for the patient and what to do.
+- "mechanism_explanation": 1-2 concise sentences on how the gene affects the drug (action-focused).
+- "variant_references": array of short strings referencing the variants (e.g. ["rs123 (CYP2C19)", ...]). Use only variants listed above.
+- "clinical_rationale": 1-2 sentences on why the recommendation follows from the genotype.
+Keep all text brief and actionable. Output only valid JSON."""
+    else:
+        instruction = """Respond with a single JSON object with exactly these keys (no other text):
+- "summary": 2-4 sentences summarizing the result and implications.
+- "mechanism_explanation": 3-6 sentences: detailed molecular mechanism, variant impact on enzyme activity, and pharmacokinetic relevance.
+- "variant_references": array of short strings referencing the variants (e.g. ["rs123 (CYP2C19)", ...]). Use only variants listed above.
+- "clinical_rationale": 2-4 sentences on why the recommendation follows from the genotype and evidence.
+Output only valid JSON."""
+
     prompt = f"""You are a clinical pharmacogenomics educator. Provide an explanation ONLY. Do not change or suggest any risk label, severity, or recommendation.
 
 Context (do not modify):
@@ -78,12 +96,7 @@ Context (do not modify):
 - Detected variants:
 {variant_list or '  (none)'}
 
-Respond with a single JSON object with exactly these keys (no other text):
-- "summary": 2-3 sentences summarizing what this result means for the patient.
-- "mechanism_explanation": 2-4 sentences on how the gene affects the drug.
-- "variant_references": array of short strings referencing the variants (e.g. ["rs123 (CYP2C19)", ...]). Use only variants listed above.
-- "clinical_rationale": 2-3 sentences on why the recommendation follows from the genotype.
-Output only valid JSON."""
+{instruction}"""
 
     try:
         with httpx.Client(timeout=30.0) as client:

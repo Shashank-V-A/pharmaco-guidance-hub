@@ -68,6 +68,23 @@ class QualityMetrics(BaseModel):
     rule_engine_status: str  # success | partial | error
 
 
+# --- Optional extension: confidence breakdown (sum equals confidence_score) ---
+class ConfidenceBreakdown(BaseModel):
+    evidence_weight: float = 0.0
+    variant_completeness: float = 0.0
+    parsing_integrity: float = 0.0
+    diplotype_clarity: float = 0.0
+
+
+# --- Optional extension: audit trail for decision transparency ---
+class AuditTrail(BaseModel):
+    gene_detected: str = ""
+    phenotype_determined: str = ""
+    rule_applied: str = ""
+    cpic_evidence_level: str = ""
+    confidence_breakdown: Optional[ConfidenceBreakdown] = None
+
+
 # --- Full response (EXACT schema). Only returned when all steps succeed. ---
 class AnalyzeResponse(BaseModel):
     patient_id: str  # Never null; UUID generated if not provided
@@ -78,6 +95,7 @@ class AnalyzeResponse(BaseModel):
     clinical_recommendation: ClinicalRecommendation
     llm_generated_explanation: LLMGeneratedExplanation
     quality_metrics: QualityMetrics
+    audit_trail: Optional[AuditTrail] = None  # Optional extension; required fields unchanged
 
     class Config:
         json_schema_extra = {

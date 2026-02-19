@@ -19,11 +19,14 @@ const ALLOWED_DRUGS = [
   "FLUOROURACIL",
 ] as const;
 
+type ExplanationMode = "clinician" | "research";
+
 const Analysis = () => {
   const navigate = useNavigate();
   const { setResultAndApi } = useAnalysisResult();
   const [file, setFile] = useState<File | null>(null);
   const [drug, setDrug] = useState<string>("");
+  const [explanationMode, setExplanationMode] = useState<ExplanationMode>("clinician");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -40,7 +43,7 @@ const Analysis = () => {
     setError("");
     setLoading(true);
     try {
-      const apiResponse = await analyzeVcf(file, drugName);
+      const apiResponse = await analyzeVcf(file, drugName, undefined, explanationMode);
       const result = mapApiResponseToResult(apiResponse, file.name);
       setResultAndApi(result, apiResponse);
       navigate("/results");
@@ -100,6 +103,37 @@ const Analysis = () => {
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                AI explanation mode
+              </label>
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant={explanationMode === "clinician" ? "default" : "outline"}
+                  size="sm"
+                  className="rounded-xl flex-1"
+                  onClick={() => setExplanationMode("clinician")}
+                >
+                  Clinician
+                </Button>
+                <Button
+                  type="button"
+                  variant={explanationMode === "research" ? "default" : "outline"}
+                  size="sm"
+                  className="rounded-xl flex-1"
+                  onClick={() => setExplanationMode("research")}
+                >
+                  Research
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {explanationMode === "clinician"
+                  ? "Short, action-focused explanation."
+                  : "Detailed mechanism, variant impact, PK."}
+              </p>
             </div>
 
             {error && (
