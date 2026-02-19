@@ -32,10 +32,10 @@ const riskMap: Record<RiskLevel, RiskConfig> = {
   },
   ineffective: {
     label: "Ineffective",
-    bg: "bg-caution/10",
-    text: "text-caution",
-    border: "border-caution/30",
-    dot: "bg-caution",
+    bg: "bg-destructive/10",
+    text: "text-destructive",
+    border: "border-destructive/30",
+    dot: "bg-destructive",
   },
 };
 

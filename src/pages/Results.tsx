@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { Download, Shield, Dna, Brain, Activity, FileSearch, ArrowRight, Copy, Check } from "lucide-react";
+import { Download, Shield, Dna, Brain, Activity, FileSearch, ArrowRight, Copy, Check, FileJson, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { PageContainer } from "@/components/layout/PageContainer";
@@ -11,12 +11,26 @@ import { ActivityBar } from "@/components/ActivityBar";
 import { ExplanationAccordion } from "@/components/ExplanationAccordion";
 import { useAnalysisResult } from "@/contexts/AnalysisResultContext";
 import type { RiskLevel } from "@/components/RiskBadge";
+import type { LLMContent } from "@/types/analysis";
 
-const RISK_CARD_STYLES: Record<RiskLevel, { border: string; iconBg: string; iconColor: string }> = {
-  safe: { border: "border-l-success", iconBg: "bg-success/10", iconColor: "text-success" },
-  adjust: { border: "border-l-warning", iconBg: "bg-warning/10", iconColor: "text-warning" },
-  toxic: { border: "border-l-destructive", iconBg: "bg-destructive/10", iconColor: "text-destructive" },
-  ineffective: { border: "border-l-destructive", iconBg: "bg-destructive/10", iconColor: "text-destructive" },
+/** Ensure we never render [object Object]; LLM fields may sometimes be nested. */
+function toDisplayString(value: unknown): string {
+  if (typeof value === "string") return value;
+  if (value != null && typeof value === "object") {
+    const o = value as Record<string, unknown>;
+    for (const key of ["text", "content", "value"]) {
+      const v = o[key];
+      if (typeof v === "string") return v;
+    }
+  }
+  return value != null ? String(value) : "";
+}
+
+const RISK_CARD_STYLES: Record<RiskLevel, { border: string; iconBg: string; iconColor: string; badge: string }> = {
+  safe: { border: "border-l-success", iconBg: "bg-success/10", iconColor: "text-success", badge: "bg-success/10 text-success" },
+  adjust: { border: "border-l-warning", iconBg: "bg-warning/10", iconColor: "text-warning", badge: "bg-warning/10 text-warning" },
+  toxic: { border: "border-l-destructive", iconBg: "bg-destructive/10", iconColor: "text-destructive", badge: "bg-destructive/10 text-destructive" },
+  ineffective: { border: "border-l-destructive", iconBg: "bg-destructive/10", iconColor: "text-destructive", badge: "bg-destructive/10 text-destructive" },
 };
 
 const Results = () => {
@@ -133,13 +147,57 @@ const Results = () => {
                 <Brain className="h-4 w-4 text-primary" />
                 <h3 className="text-sm font-semibold text-foreground">AI Summary & Explanations</h3>
               </div>
+              <div className="flex flex-wrap items-center gap-2 border-b border-border pb-3">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    const blob = new Blob(
+                      [JSON.stringify({ ...result.llm, drug: result.drug, gene: result.gene }, null, 2)],
+                      { type: "application/json" }
+                    );
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement("a");
+                    a.href = url;
+                    a.download = "genex-ai-summary.json";
+                    a.click();
+                    URL.revokeObjectURL(url);
+                  }}
+                  className="gap-1.5 rounded-lg"
+                >
+                  <FileJson className="h-3.5 w-3.5" />
+                  Download JSON
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    const llm = result.llm as LLMContent;
+                    const summary = toDisplayString(llm.summary);
+                    const mechanical = toDisplayString(llm.mechanicalExplanation);
+                    const biological = toDisplayString(llm.biologicalReasoning);
+                    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>GeneX AI Summary</title><style>body{font-family:system-ui,sans-serif;max-width:720px;margin:2rem auto;padding:0 1rem;line-height:1.6;color:#1a1a1a;} h1{font-size:1.25rem;margin-bottom:0.5rem;} h2{font-size:0.75rem;text-transform:uppercase;letter-spacing:0.05em;color:#64748b;margin:1.5rem 0 0.5rem;} p{margin:0 0 0.75rem;}</style></head><body><h1>AI Summary &amp; Explanations</h1><p><strong>${result.drug}</strong> · ${result.gene}</p><h2>Summary</h2><p>${summary.replace(/</g, "&lt;")}</p><h2>Mechanical explanation</h2><p>${mechanical.replace(/</g, "&lt;")}</p><h2>Biological reasoning</h2><p>${biological.replace(/</g, "&lt;")}</p></body></html>`;
+                    const win = window.open("", "_blank");
+                    if (win) {
+                      win.document.write(html);
+                      win.document.close();
+                      win.focus();
+                      setTimeout(() => win.print(), 250);
+                    }
+                  }}
+                  className="gap-1.5 rounded-lg"
+                >
+                  <FileText className="h-3.5 w-3.5" />
+                  Download PDF
+                </Button>
+              </div>
               <div className="space-y-5">
                 <div>
                   <h4 className="mb-1.5 text-xs font-medium uppercase tracking-wider text-muted-foreground">
                     Summary
                   </h4>
                   <p className="text-sm leading-relaxed text-foreground">
-                    {result.llm.summary}
+                    {toDisplayString(result.llm.summary)}
                   </p>
                 </div>
                 <div>
@@ -147,7 +205,7 @@ const Results = () => {
                     Mechanical explanation
                   </h4>
                   <p className="text-sm leading-relaxed text-muted-foreground">
-                    {result.llm.mechanicalExplanation}
+                    {toDisplayString(result.llm.mechanicalExplanation)}
                   </p>
                 </div>
                 <div>
@@ -155,7 +213,7 @@ const Results = () => {
                     Biological reasoning
                   </h4>
                   <p className="text-sm leading-relaxed text-muted-foreground">
-                    {result.llm.biologicalReasoning}
+                    {toDisplayString(result.llm.biologicalReasoning)}
                   </p>
                 </div>
               </div>
@@ -185,7 +243,7 @@ const Results = () => {
                 </div>
                 <div>
                   <p className="text-xs text-muted-foreground">Phenotype</p>
-                  <span className="mt-0.5 inline-block rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
+                  <span className={`mt-0.5 inline-block rounded-full px-2 py-0.5 text-xs font-medium ${riskStyle.badge}`}>
                     {result.phenotype}
                   </span>
                 </div>

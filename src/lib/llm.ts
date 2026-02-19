@@ -52,23 +52,33 @@ function extractJsonText(raw: string): string {
   return text;
 }
 
+/** Normalize API response: ensure we always get a string (some APIs return nested objects). */
+function toLLMString(value: unknown): string {
+  if (typeof value === "string") return value.trim();
+  if (value != null && typeof value === "object") {
+    const o = value as Record<string, unknown>;
+    for (const key of ["text", "content", "value"]) {
+      const v = o[key];
+      if (typeof v === "string") return v.trim();
+    }
+  }
+  return "";
+}
+
 function parseLLMResponse(text: string): LLMContent | null {
   try {
     const content = extractJsonText(text);
     const parsed = JSON.parse(content) as {
-      summary?: string;
-      mechanicalExplanation?: string;
-      biologicalReasoning?: string;
+      summary?: unknown;
+      mechanicalExplanation?: unknown;
+      biologicalReasoning?: unknown;
     };
-    return {
-      summary: String(parsed.summary ?? "").trim() || "No summary generated.",
-      mechanicalExplanation:
-        String(parsed.mechanicalExplanation ?? "").trim() ||
-        "No mechanical explanation generated.",
-      biologicalReasoning:
-        String(parsed.biologicalReasoning ?? "").trim() ||
-        "No biological reasoning generated.",
-    };
+    const summary = toLLMString(parsed.summary) || "No summary generated.";
+    const mechanicalExplanation =
+      toLLMString(parsed.mechanicalExplanation) || "No mechanical explanation generated.";
+    const biologicalReasoning =
+      toLLMString(parsed.biologicalReasoning) || "No biological reasoning generated.";
+    return { summary, mechanicalExplanation, biologicalReasoning };
   } catch {
     return null;
   }
