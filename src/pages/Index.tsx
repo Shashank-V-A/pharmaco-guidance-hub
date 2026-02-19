@@ -34,8 +34,8 @@ const Index = () => {
             Pharmacogenomic Decision Support
           </div>
 
-          <h1 className="mb-6 text-4xl font-bold leading-tight tracking-tight text-foreground sm:text-5xl">
-            Precision Drug Safety
+          <h1 className="mb-6 text-4xl font-bold leading-tight tracking-tight sm:text-5xl">
+            <span className="text-gene-red">Precision Drug Safety</span>
             <br />
             <span className="text-primary">Through Genomics</span>
           </h1>

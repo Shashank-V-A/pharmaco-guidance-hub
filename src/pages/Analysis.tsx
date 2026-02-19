@@ -15,6 +15,7 @@ const Analysis = () => {
   const [identified, setIdentified] = useState<IdentifiedDrug | null>(null);
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
+  const [loadingPhase, setLoadingPhase] = useState<"analyze" | "llm" | null>(null);
   const [error, setError] = useState("");
 
   const handleAnalyze = () => {
@@ -25,9 +26,10 @@ const Analysis = () => {
     setTimeout(() => {
       const result = buildAnalysisResult(identified.drug, identified.gene, file.name);
       setResult(result);
-      setLoading(false);
       navigate("/results");
-    }, 2000);
+      setLoading(false);
+      setLoadingPhase(null);
+    }, 0);
   };
 
   return (
@@ -93,7 +95,9 @@ const Analysis = () => {
               {loading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Analyzing…
+                  {loadingPhase === "llm"
+                    ? "Generating explanations…"
+                    : "Analyzing…"}
                 </>
               ) : (
                 "Analyze drug–gene risk"

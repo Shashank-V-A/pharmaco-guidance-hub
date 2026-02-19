@@ -12,6 +12,13 @@ export interface ExplanationItem {
   content: string;
 }
 
+/** LLM-generated content for summary and explanations */
+export interface LLMContent {
+  summary: string;
+  mechanicalExplanation: string;
+  biologicalReasoning: string;
+}
+
 export interface AnalysisResult {
   drug: string;
   fileName: string;
@@ -25,4 +32,6 @@ export interface AnalysisResult {
   variants: VariantRow[];
   explanations: ExplanationItem[];
   audit: ExplanationItem[];
+  /** LLM-generated summary and explanations (optional) */
+  llm?: LLMContent;
 }

@@ -126,6 +126,42 @@ const Results = () => {
             </div>
           </div>
 
+          {/* LLM-generated summary and explanations */}
+          {result.llm && (
+            <div className="clinical-card fade-in-up space-y-6" style={{ animationDelay: "60ms" }}>
+              <div className="flex items-center gap-2">
+                <Brain className="h-4 w-4 text-primary" />
+                <h3 className="text-sm font-semibold text-foreground">AI Summary & Explanations</h3>
+              </div>
+              <div className="space-y-5">
+                <div>
+                  <h4 className="mb-1.5 text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                    Summary
+                  </h4>
+                  <p className="text-sm leading-relaxed text-foreground">
+                    {result.llm.summary}
+                  </p>
+                </div>
+                <div>
+                  <h4 className="mb-1.5 text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                    Mechanical explanation
+                  </h4>
+                  <p className="text-sm leading-relaxed text-muted-foreground">
+                    {result.llm.mechanicalExplanation}
+                  </p>
+                </div>
+                <div>
+                  <h4 className="mb-1.5 text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                    Biological reasoning
+                  </h4>
+                  <p className="text-sm leading-relaxed text-muted-foreground">
+                    {result.llm.biologicalReasoning}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
           <div className="grid gap-6 lg:grid-cols-2">
             {/* Genetic Profile */}
             <div className="clinical-card fade-in-up" style={{ animationDelay: "100ms" }}>
