@@ -10,6 +10,15 @@ import httpx
 from backend.config import GROK_API_KEY, GROK_API_URL, GROK_MODEL
 
 
+# Rule 9: exact fallback when LLM fails (only used when rule_engine succeeded)
+LLM_FAILURE_FALLBACK: Dict[str, Any] = {
+    "summary": "Explanation unavailable.",
+    "mechanism_explanation": "Deterministic CPIC rule applied.",
+    "variant_references": [],
+    "clinical_rationale": "Based on CPIC guidelines.",
+}
+
+
 def _fallback_explanation(
     drug: str,
     gene: str,
@@ -18,10 +27,10 @@ def _fallback_explanation(
     guideline: str,
 ) -> Dict[str, Any]:
     return {
-        "summary": f"For {drug}, {gene} phenotype is {phenotype}. Risk: {risk_label}. Follow {guideline} guidelines.",
-        "mechanism_explanation": f"{gene} influences metabolism or response to {drug}. Phenotype {phenotype} indicates the expected activity level.",
-        "variant_references": [],
-        "clinical_rationale": f"Recommendation is based on CPIC guideline for {drug} and {gene} genotype.",
+        "summary": LLM_FAILURE_FALLBACK["summary"],
+        "mechanism_explanation": LLM_FAILURE_FALLBACK["mechanism_explanation"],
+        "variant_references": list(LLM_FAILURE_FALLBACK["variant_references"]),
+        "clinical_rationale": LLM_FAILURE_FALLBACK["clinical_rationale"],
     }
 
 

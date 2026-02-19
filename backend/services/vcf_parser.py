@@ -1,12 +1,12 @@
 """
-VCF parsing with cyvcf2. Extract GENE (from INFO or rsid mapping), STAR, RS, Genotype.
+VCF parsing: prefer cyvcf2; fallback to pure-Python parser when cyvcf2 is not installed.
+Extract GENE (from INFO or rsid mapping), STAR, RS, Genotype.
 Filter ONLY the 6 allowed genes. Graceful handling of missing INFO.
 """
-import io
 from typing import List, Dict, Any, Optional, Set
 
 try:
-    import cyvcf2
+    import cyvcf2  # type: ignore[reportMissingImports]
 except ImportError:
     cyvcf2 = None
 
@@ -84,25 +84,85 @@ def _get_gt(record: Any) -> str:
     return "./."
 
 
+def _parse_vcf_python(vcf_content: bytes) -> tuple[List[Dict[str, Any]], bool, str]:
+    """
+    Pure-Python VCF parser fallback when cyvcf2 is not installed.
+    Reads text VCF: header for column indices, data lines for ID (rsid) and GT from first sample.
+    """
+    try:
+        text = vcf_content.decode("utf-8", errors="replace")
+    except Exception:
+        return [], False, "VCF could not be decoded as UTF-8"
+    lines = text.splitlines()
+    variants: List[Dict[str, Any]] = []
+    genes_seen: Set[str] = set()
+    format_idx = -1
+    gt_idx = -1
+    for line in lines:
+        if line.startswith("##"):
+            continue
+        if line.startswith("#"):
+            parts = line[1:].split("\t")
+            if len(parts) < 9:
+                continue
+            fmt_col = parts[8]
+            format_keys = fmt_col.split(":")
+            gt_idx = format_keys.index("GT") if "GT" in format_keys else -1
+            format_idx = 8
+            continue
+        parts = line.split("\t")
+        if len(parts) < 8:
+            continue
+        id_col = parts[2]
+        ids = [x.strip() for x in id_col.split(";") if x.strip()]
+        rsid = next((x for x in ids if x.startswith("rs")), id_col if id_col != "." else None)
+        if not rsid or not rsid.startswith("rs"):
+            continue
+        gene = RSID_TO_GENE.get(rsid)
+        if not gene or gene not in ALLOWED_GENES:
+            continue
+        genes_seen.add(gene)
+        genotype = "./."
+        if gt_idx >= 0 and len(parts) > 9:
+            sample = parts[9].split(":")
+            if gt_idx < len(sample):
+                genotype = sample[gt_idx].replace("|", "/")
+        info_col = parts[7] if len(parts) > 7 else ""
+        star = None
+        for kv in info_col.split(";"):
+            if "=" in kv:
+                k, v = kv.split("=", 1)
+                if k in ("STAR", "STAR_ALLELE", "ALLELE", "GENE"):
+                    star = v.strip() if k != "GENE" else None
+                    break
+        variants.append({
+            "gene": gene,
+            "star": star,
+            "rs": rsid,
+            "genotype": genotype,
+        })
+    gene_coverage = ",".join(sorted(genes_seen)) if genes_seen else "none"
+    return variants, True, gene_coverage
+
+
 def parse_vcf(vcf_content: bytes, max_size: int = 5 * 1024 * 1024) -> tuple[List[Dict[str, Any]], bool, str]:
     """
     Parse VCF content. Returns (variants, parsing_success, gene_coverage).
     variants: list of {gene, star, rs, genotype}
     Only includes variants for ALLOWED_GENES.
+    Uses cyvcf2 when available; otherwise pure-Python fallback.
     """
-    if cyvcf2 is None:
-        return [], False, "cyvcf2 not installed"
-
     if len(vcf_content) > max_size:
         return [], False, "VCF exceeds max size"
 
+    if cyvcf2 is None:
+        return _parse_vcf_python(vcf_content)
+
     variants: List[Dict[str, Any]] = []
     genes_seen: Set[str] = set()
-
     try:
-        # cyvcf2 expects path or file-like; use temp file or BytesIO
-        # cyvcf2.VCF() typically wants a path. For bytes we write to a temp file.
         import tempfile
+        import os
         with tempfile.NamedTemporaryFile(suffix=".vcf", delete=False) as f:
             f.write(vcf_content)
             path = f.name
@@ -124,7 +184,6 @@ def parse_vcf(vcf_content: bytes, max_size: int = 5 * 1024 * 1024) -> tuple[List
                 })
             vcf.close()
         finally:
-            import os
             try:
                 os.unlink(path)
             except OSError:

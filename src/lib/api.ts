@@ -6,7 +6,7 @@ import type { AnalysisResult } from "@/types/analysis";
 const API_BASE = (import.meta.env.VITE_API_BASE_URL ?? "").replace(/\/$/, "");
 
 export interface AnalyzeApiResponse {
-  patient_id?: string | null;
+  patient_id: string; // Backend never null; UUID if not provided
   drug: string;
   timestamp: string;
   risk_assessment: {

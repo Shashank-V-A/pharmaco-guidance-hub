@@ -7,11 +7,15 @@ from .schemas import (
     LLMGeneratedExplanation,
     QualityMetrics,
     DetectedVariant,
+    VcfParseErrorResponse,
+    RuleEngineErrorResponse,
 )
 
 __all__ = [
     "AnalyzeRequest",
     "AnalyzeResponse",
+    "VcfParseErrorResponse",
+    "RuleEngineErrorResponse",
     "RiskAssessment",
     "PharmacogenomicProfile",
     "ClinicalRecommendation",

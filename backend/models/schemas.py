@@ -2,9 +2,19 @@
 Strict Pydantic schemas for hackathon-compliant API.
 Output schema MUST match exactly.
 """
-from datetime import datetime
 from typing import List, Optional
 from pydantic import BaseModel, Field
+
+
+# --- Error responses (no full schema) ---
+class VcfParseErrorResponse(BaseModel):
+    error: str = "VCF parsing failed"
+    details: str
+
+
+class RuleEngineErrorResponse(BaseModel):
+    error: str = "Rule engine failed"
+    details: str
 
 
 # --- Request ---
@@ -58,9 +68,9 @@ class QualityMetrics(BaseModel):
     rule_engine_status: str  # success | partial | error
 
 
-# --- Full response (EXACT schema) ---
+# --- Full response (EXACT schema). Only returned when all steps succeed. ---
 class AnalyzeResponse(BaseModel):
-    patient_id: Optional[str] = None
+    patient_id: str  # Never null; UUID generated if not provided
     drug: str
     timestamp: str  # ISO format
     risk_assessment: RiskAssessment
@@ -72,7 +82,7 @@ class AnalyzeResponse(BaseModel):
     class Config:
         json_schema_extra = {
             "example": {
-                "patient_id": "P001",
+                "patient_id": "550e8400-e29b-41d4-a716-446655440000",
                 "drug": "CODEINE",
                 "timestamp": "2025-02-19T12:00:00Z",
                 "risk_assessment": {
