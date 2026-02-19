@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+
 import { ArrowRight, Shield, Dna, BarChart3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
