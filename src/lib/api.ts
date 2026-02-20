@@ -4,16 +4,7 @@
 import type { AnalysisResult } from "@/types/analysis";
 
 const envBase = (import.meta.env.VITE_API_BASE_URL ?? "").toString().trim().replace(/\/$/, "");
-const API_BASE = (() => {
-  if (!envBase) return "/api";
-  if (typeof window === "undefined") return envBase;
-  try {
-    if (new URL(envBase).origin === window.location.origin) return "/api";
-  } catch {
-    /* ignore invalid URL */
-  }
-  return envBase;
-})();
+const API_BASE = envBase && envBase.includes("localhost") ? envBase : "/api";
 
 /** Optional confidence breakdown (sum equals confidence_score). */
 export interface ConfidenceBreakdownApi {
