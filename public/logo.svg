@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 80" fill="none" aria-hidden="true">
+  <!-- Left strand (green) - winding path -->
+  <path d="M18 6 C18 22 46 22 46 38 C46 54 18 54 18 74" stroke="hsl(142, 71%, 38%)" stroke-width="4" stroke-linecap="round" fill="none"/>
+  <!-- Right strand (blue) - complementary winding -->
+  <path d="M46 6 C46 22 18 22 18 38 C18 54 46 54 46 74" stroke="hsl(217, 91%, 53%)" stroke-width="4" stroke-linecap="round" fill="none"/>
+  <!-- Base pair rungs (dots + line) -->
+  <g stroke="hsl(0, 0%, 55%)" stroke-width="1.2">
+    <line x1="22" y1="14" x2="42" y2="14"/>
+    <line x1="42" y1="30" x2="22" y2="30"/>
+    <line x1="22" y1="46" x2="42" y2="46"/>
+    <line x1="42" y1="62" x2="22" y2="62"/>
+  </g>
+  <circle cx="22" cy="14" r="2.8" fill="hsl(142, 71%, 38%)"/>
+  <circle cx="42" cy="14" r="2.8" fill="hsl(217, 91%, 53%)"/>
+  <circle cx="42" cy="30" r="2.8" fill="hsl(217, 91%, 53%)"/>
+  <circle cx="22" cy="30" r="2.8" fill="hsl(142, 71%, 38%)"/>
+  <circle cx="22" cy="46" r="2.8" fill="hsl(142, 71%, 38%)"/>
+  <circle cx="42" cy="46" r="2.8" fill="hsl(217, 91%, 53%)"/>
+  <circle cx="42" cy="62" r="2.8" fill="hsl(217, 91%, 53%)"/>
+  <circle cx="22" cy="62" r="2.8" fill="hsl(142, 71%, 38%)"/>
+</svg>

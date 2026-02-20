@@ -67,19 +67,19 @@ const Login = () => {
         className="pointer-events-none fixed inset-0 z-0"
         aria-hidden
         style={{
-          background: "radial-gradient(ellipse 80% 50% at 0% 0%, hsl(var(--primary) / 0.06) 0%, transparent 50%)",
+          background: "radial-gradient(ellipse 80% 50% at 0% 0%, hsl(var(--primary) / 0.08) 0%, transparent 50%)",
         }}
       />
 
       {/* Top-left branding */}
       <header className="relative z-10 flex items-center gap-2 px-6 py-5 sm:px-8">
         <img
-          src="/logo.png"
+          src="/logo.svg"
           alt="GeneX"
           className="h-9 w-9 object-contain"
         />
         <span className="text-lg font-semibold tracking-tight">
-          <span className="text-gene-red">Gene</span><span className="text-primary">X</span>
+          <span className="text-primary">Gene</span><span className="text-foreground">X</span>
         </span>
       </header>
 
@@ -93,9 +93,9 @@ const Login = () => {
 
           {/* Main heading */}
           <h1 className="mb-5 text-3xl font-bold leading-tight tracking-tight sm:text-4xl md:text-5xl">
-            <span className="text-gene-red">Precision Drug Safety</span>
+            <span className="text-primary">Precision Drug Safety</span>
             {" "}
-            <span className="text-primary">Through Genomics</span>
+            <span className="text-foreground">Through Genomics</span>
           </h1>
 
           {/* Description */}

@@ -93,6 +93,36 @@ export async function analyzeVcf(
   return res.json() as Promise<AnalyzeApiResponse>;
 }
 
+/** Response from POST /detect-drug (image-based drug detection; input enhancement only). */
+export interface DetectDrugResponse {
+  detected_drug: string;
+  confidence: number;
+  raw_text?: string;
+}
+
+/** Detect drug name from image (label photo). Does not run analysis. */
+export async function detectDrug(image: File): Promise<DetectDrugResponse> {
+  const form = new FormData();
+  form.append("image", image);
+  const url = `${API_BASE}/detect-drug`;
+  const res = await fetch(url, {
+    method: "POST",
+    body: form,
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    let detail = text;
+    try {
+      const j = JSON.parse(text);
+      detail = j.details ?? j.detail ?? j.error ?? text;
+    } catch {
+      // use text
+    }
+    throw new Error(typeof detail === "string" ? detail : JSON.stringify(detail));
+  }
+  return res.json() as Promise<DetectDrugResponse>;
+}
+
 /** Download clinical report PDF for a patient (last successful analysis). */
 export async function fetchReport(patientId: string): Promise<Blob> {
   const url = `${API_BASE}/report/${encodeURIComponent(patientId)}`;

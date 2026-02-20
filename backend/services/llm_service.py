@@ -35,8 +35,15 @@ def _fallback_explanation(
 
 
 def _extract_json(text: str) -> Optional[Dict]:
-    """Extract JSON object from LLM response."""
+    """Extract JSON object from LLM response. Handles raw JSON or markdown code blocks."""
+    if not text:
+        return None
     text = text.strip()
+    # Unwrap ```json ... ``` or ``` ... ```
+    code_block = re.search(r"```(?:json)?\s*([\s\S]*?)```", text)
+    if code_block:
+        text = code_block.group(1).strip()
+    # Find first { ... } object
     match = re.search(r"\{[\s\S]*\}", text)
     if match:
         try:

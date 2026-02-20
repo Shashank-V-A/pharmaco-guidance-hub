@@ -35,9 +35,9 @@ const Index = () => {
           </div>
 
           <h1 className="mb-6 text-4xl font-bold leading-tight tracking-tight sm:text-5xl">
-            <span className="text-gene-red">Precision Drug Safety</span>
+            <span className="text-primary">Precision Drug Safety</span>
             <br />
-            <span className="text-primary">Through Genomics</span>
+            <span className="text-foreground">Through Genomics</span>
           </h1>
 
           <p className="mx-auto mb-10 max-w-xl text-base leading-relaxed text-muted-foreground sm:text-lg">

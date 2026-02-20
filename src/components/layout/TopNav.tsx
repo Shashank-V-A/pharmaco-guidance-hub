@@ -27,12 +27,12 @@ export function TopNav() {
       <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
         <Link to="/" className="flex items-center gap-2">
           <img
-            src="/logo.png"
+            src="/logo.svg"
             alt="GeneX"
             className="h-8 w-8 object-contain"
           />
           <span className="text-sm font-semibold tracking-tight">
-            <span className="text-gene-red">Gene</span><span className="text-primary">X</span>
+            <span className="text-primary">Gene</span><span className="text-foreground">X</span>
           </span>
         </Link>
 

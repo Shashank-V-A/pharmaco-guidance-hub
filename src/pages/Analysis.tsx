@@ -1,13 +1,13 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Loader2, FileText, Dna } from "lucide-react";
+import { Loader2, FileText, Dna, ImagePlus, Camera, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { UploadZone } from "@/components/UploadZone";
 import { useAnalysisResult } from "@/contexts/AnalysisResultContext";
-import { analyzeVcf, mapApiResponseToResult } from "@/lib/api";
+import { analyzeVcf, mapApiResponseToResult, detectDrug } from "@/lib/api";
 
 /** Strict scope: only these 6 drugs (backend enforces). */
 const ALLOWED_DRUGS = [
@@ -20,15 +20,129 @@ const ALLOWED_DRUGS = [
 ] as const;
 
 type ExplanationMode = "clinician" | "research";
+type DrugInputMode = "manual" | "upload" | "camera";
 
 const Analysis = () => {
   const navigate = useNavigate();
   const { setResultAndApi } = useAnalysisResult();
   const [file, setFile] = useState<File | null>(null);
   const [drug, setDrug] = useState<string>("");
+  const [drugInputMode, setDrugInputMode] = useState<DrugInputMode>("manual");
+  const [detectedDrug, setDetectedDrug] = useState<{ drug: string; confidence: number } | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [detectLoading, setDetectLoading] = useState(false);
+  const [detectError, setDetectError] = useState<string | null>(null);
   const [explanationMode, setExplanationMode] = useState<ExplanationMode>("clinician");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+
+  const startCamera = async () => {
+    if (drugInputMode !== "camera") return;
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+      streamRef.current = stream;
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+      }
+    } catch (e) {
+      setDetectError("Camera access denied or unavailable.");
+    }
+  };
+
+  const stopCamera = () => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((t) => t.stop());
+      streamRef.current = null;
+    }
+    if (videoRef.current) {
+      videoRef.current.srcObject = null;
+    }
+  };
+
+  useEffect(() => {
+    if (drugInputMode === "camera") {
+      startCamera();
+    } else {
+      stopCamera();
+    }
+    return () => stopCamera();
+  }, [drugInputMode]);
+
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0];
+    if (!f) return;
+    if (!f.type.startsWith("image/")) {
+      setDetectError("Please select an image file (jpg, png, etc.).");
+      return;
+    }
+    setDetectError(null);
+    setImageFile(f);
+    if (imagePreview) URL.revokeObjectURL(imagePreview);
+    setImagePreview(URL.createObjectURL(f));
+  };
+
+  useEffect(() => {
+    return () => {
+      if (imagePreview) URL.revokeObjectURL(imagePreview);
+    };
+  }, [imagePreview]);
+
+  const handleDetectFromFile = async () => {
+    if (!imageFile) {
+      setDetectError("Please select an image first.");
+      return;
+    }
+    setDetectError(null);
+    setDetectLoading(true);
+    try {
+      const res = await detectDrug(imageFile);
+      setDetectedDrug({ drug: res.detected_drug, confidence: res.confidence });
+      setDrug(res.detected_drug);
+    } catch (e) {
+      setDetectError(e instanceof Error ? e.message : "Detection failed.");
+    } finally {
+      setDetectLoading(false);
+    }
+  };
+
+  const handleCapture = async () => {
+    if (!videoRef.current || !streamRef.current) {
+      setDetectError("Camera not ready.");
+      return;
+    }
+    const video = videoRef.current;
+    if (video.videoWidth === 0 || video.videoHeight === 0) {
+      setDetectError("Waiting for video frame.");
+      return;
+    }
+    setDetectError(null);
+    setDetectLoading(true);
+    try {
+      const canvas = document.createElement("canvas");
+      const scale = 1.5;
+      canvas.width = Math.round(video.videoWidth * scale);
+      canvas.height = Math.round(video.videoHeight * scale);
+      const ctx = canvas.getContext("2d");
+      if (!ctx) throw new Error("Canvas not available");
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = "high";
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.95));
+      if (!blob) throw new Error("Capture failed");
+      const file = new File([blob], "capture.jpg", { type: "image/jpeg" });
+      const res = await detectDrug(file);
+      setDetectedDrug({ drug: res.detected_drug, confidence: res.confidence });
+      setDrug(res.detected_drug);
+    } catch (e) {
+      setDetectError(e instanceof Error ? e.message : "Capture or detection failed.");
+    } finally {
+      setDetectLoading(false);
+    }
+  };
 
   const handleAnalyze = async () => {
     if (!file) {
@@ -84,6 +198,7 @@ const Analysis = () => {
               </div>
             )}
 
+            {/* Drug input mode */}
             <div className="space-y-2">
               <div className="flex items-center gap-2">
                 <Dna className="h-4 w-4 text-primary" />
@@ -91,6 +206,131 @@ const Analysis = () => {
                   Drug
                 </label>
               </div>
+              <div className="flex gap-2 rounded-xl border border-border bg-muted/30 p-1">
+                <Button
+                  type="button"
+                  variant={drugInputMode === "manual" ? "secondary" : "ghost"}
+                  size="sm"
+                  className="flex-1 rounded-lg"
+                  onClick={() => {
+                    setDrugInputMode("manual");
+                    setDetectError(null);
+                    setDetectedDrug(null);
+                    if (imagePreview) URL.revokeObjectURL(imagePreview);
+                    setImagePreview(null);
+                    setImageFile(null);
+                  }}
+                >
+                  Manual
+                </Button>
+                <Button
+                  type="button"
+                  variant={drugInputMode === "upload" ? "secondary" : "ghost"}
+                  size="sm"
+                  className="flex-1 rounded-lg"
+                  onClick={() => { setDrugInputMode("upload"); setDetectError(null); }}
+                >
+                  <ImagePlus className="mr-1 h-3.5 w-3.5" />
+                  Upload Image
+                </Button>
+                <Button
+                  type="button"
+                  variant={drugInputMode === "camera" ? "secondary" : "ghost"}
+                  size="sm"
+                  className="flex-1 rounded-lg"
+                  onClick={() => { setDrugInputMode("camera"); setDetectError(null); setDetectedDrug(null); }}
+                >
+                  <Camera className="mr-1 h-3.5 w-3.5" />
+                  Camera
+                </Button>
+              </div>
+
+              {drugInputMode === "upload" && (
+                <div className="fade-in space-y-3 rounded-2xl border border-border bg-muted/20 p-4">
+                  <label className="flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-border py-6 transition-colors hover:border-primary/40">
+                    <ImagePlus className="mb-2 h-6 w-6 text-muted-foreground" />
+                    <span className="text-sm text-foreground">Choose drug label image</span>
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp,image/bmp,image/gif"
+                      className="hidden"
+                      onChange={handleImageSelect}
+                    />
+                  </label>
+                  {imagePreview && (
+                    <div className="relative overflow-hidden rounded-xl bg-muted">
+                      <img src={imagePreview} alt="Preview" className="max-h-40 w-full object-contain" />
+                    </div>
+                  )}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="w-full rounded-xl"
+                    disabled={!imageFile || detectLoading}
+                    onClick={handleDetectFromFile}
+                  >
+                    {detectLoading ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Detecting…
+                      </>
+                    ) : (
+                      "Detect drug"
+                    )}
+                  </Button>
+                </div>
+              )}
+
+              {drugInputMode === "camera" && (
+                <div className="fade-in space-y-3 rounded-2xl border border-border bg-muted/20 p-4">
+                  <div className="relative aspect-video overflow-hidden rounded-xl bg-black">
+                    <video
+                      ref={videoRef}
+                      autoPlay
+                      playsInline
+                      muted
+                      className="h-full w-full object-cover"
+                    />
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="w-full rounded-xl"
+                    disabled={detectLoading}
+                    onClick={handleCapture}
+                  >
+                    {detectLoading ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Detecting…
+                      </>
+                    ) : (
+                      <>
+                        <Camera className="mr-2 h-4 w-4" />
+                        Capture & detect drug
+                      </>
+                    )}
+                  </Button>
+                </div>
+              )}
+
+              {detectedDrug && (
+                <div className="fade-in flex items-center gap-2 rounded-xl bg-primary/10 px-4 py-2.5 text-sm text-primary">
+                  <CheckCircle2 className="h-4 w-4 shrink-0" />
+                  <span>
+                    Detected: <strong>{detectedDrug.drug}</strong> (Confidence: {(detectedDrug.confidence * 100).toFixed(0)}%)
+                  </span>
+                </div>
+              )}
+
+              {detectError && (
+                <div className="fade-in rounded-xl bg-destructive/10 px-4 py-2.5 text-sm text-destructive">
+                  {detectError}
+                </div>
+              )}
+
               <Select value={drug} onValueChange={(v) => { setDrug(v); setError(""); }}>
                 <SelectTrigger className="rounded-xl">
                   <SelectValue placeholder="Select a drug" />
@@ -103,6 +343,9 @@ const Analysis = () => {
                   ))}
                 </SelectContent>
               </Select>
+              <p className="text-xs text-muted-foreground">
+                {drugInputMode !== "manual" ? "You can change the drug above before analyzing." : "Select the drug for pharmacogenomic analysis."}
+              </p>
             </div>
 
             <div className="space-y-2">

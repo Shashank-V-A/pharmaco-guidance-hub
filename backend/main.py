@@ -37,6 +37,7 @@ from backend.services import (
     fetch_llm_explanation,
 )
 from backend.services.report_service import build_pdf
+from backend.services.drug_detection_service import detect_drug_from_image, TesseractNotAvailableError
 from fastapi.responses import Response
 
 app = FastAPI(
@@ -254,6 +255,50 @@ async def analyze(
     _report_store[resolved_patient_id] = report_data
 
     return response
+
+
+# --- Drug detection from image (input enhancement only; does not run CPIC) ---
+MAX_IMAGE_SIZE_BYTES = 10 * 1024 * 1024  # 10MB
+ALLOWED_IMAGE_EXTENSIONS = (".jpg", ".jpeg", ".png", ".webp", ".bmp", ".gif")
+
+
+@app.post("/detect-drug")
+async def detect_drug(image: UploadFile = File(..., description="Image of drug label (jpg, png, etc.)")):
+    """
+    OCR + deterministic match against supported drugs. Returns detected_drug and confidence.
+    Does NOT run CPIC, phenotype, or confidence engines. Frontend must confirm and user clicks Analyze.
+    """
+    if not image.filename or not image.filename.lower().endswith(ALLOWED_IMAGE_EXTENSIONS):
+        return JSONResponse(
+            status_code=400,
+            content={"error": "Invalid image", "details": "File must be an image (jpg, png, webp, bmp, gif)"},
+        )
+    content = await image.read()
+    if len(content) > MAX_IMAGE_SIZE_BYTES:
+        return JSONResponse(
+            status_code=400,
+            content={"error": "Image too large", "details": "Max 10MB"},
+        )
+    try:
+        detected_drug, confidence, raw_text = detect_drug_from_image(content)
+    except TesseractNotAvailableError as e:
+        return JSONResponse(
+            status_code=503,
+            content={"error": "OCR not available", "details": str(e)},
+        )
+    if detected_drug is None or confidence < 0.6:
+        return JSONResponse(
+            status_code=422,
+            content={
+                "error": "No supported drug detected",
+                "details": "Image did not contain one of: CODEINE, WARFARIN, CLOPIDOGREL, SIMVASTATIN, AZATHIOPRINE, FLUOROURACIL",
+            },
+        )
+    return {
+        "detected_drug": detected_drug,
+        "confidence": confidence,
+        "raw_text": raw_text[:500] if raw_text else "",
+    }
 
 
 @app.get("/report/{patient_id}")
