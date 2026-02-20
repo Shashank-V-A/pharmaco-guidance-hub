@@ -214,12 +214,7 @@ curl -O -J "http://localhost:8000/report/patient-001"
 
 ---
 
-## Team members
-
-**[Add your team members here.]**
-
-Example:
-
-- **Name 1** — Role (e.g. Frontend, Backend)
-- **Name 2** — Role
-- **Name 3** — Role
+## Team IQistics:
+1. Shashank VA
+2. Abhay M
+3. Diya Varne
