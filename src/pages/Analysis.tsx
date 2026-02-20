@@ -326,8 +326,17 @@ const Analysis = () => {
               )}
 
               {detectError && (
-                <div className="fade-in rounded-xl bg-destructive/10 px-4 py-2.5 text-sm text-destructive">
+                <div
+                  className={`fade-in rounded-xl px-4 py-2.5 text-sm ${
+                    detectError.includes("not available in this environment")
+                      ? "bg-amber-50 text-amber-900 dark:bg-amber-950/40 dark:text-amber-200"
+                      : "bg-destructive/10 text-destructive"
+                  }`}
+                >
                   {detectError}
+                  {detectError.includes("not available in this environment") && (
+                    <p className="mt-1.5 text-xs opacity-90">Use the &quot;Select a drug&quot; dropdown below to choose the drug, then run analysis.</p>
+                  )}
                 </div>
               )}
 

@@ -281,10 +281,13 @@ async def detect_drug(image: UploadFile = File(..., description="Image of drug l
         )
     try:
         detected_drug, confidence, raw_text = detect_drug_from_image(content)
-    except TesseractNotAvailableError as e:
+    except TesseractNotAvailableError:
         return JSONResponse(
             status_code=503,
-            content={"error": "OCR not available", "details": str(e)},
+            content={
+                "error": "Image detection unavailable",
+                "details": "Drug detection from image is not available in this environment (e.g. cloud deployment). Please select the drug manually from the dropdown.",
+            },
         )
     if detected_drug is None or confidence < 0.6:
         return JSONResponse(
