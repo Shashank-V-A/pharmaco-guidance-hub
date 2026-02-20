@@ -14,7 +14,7 @@ Example: `https://pharmaco-guidance-hub.vercel.app`
 ## LinkedIn video
 
 **[Add your LinkedIn video link here]**  
-Example: `https://www.linkedin.com/posts/...`
+Example: `https://www.linkedin.com/posts/abhay-m-06student_ai-bioinformatics-healthcareai-activity-7430428937962557441-a7b_?utm_source=share&utm_medium=member_desktop&rcm=ACoAAEamc8MBeLUEdHnnaw88iqkEl1SS2RweMRE`
 
 ---
 
