@@ -43,17 +43,20 @@ const Login = () => {
         <div className="clinical-card fade-in-up w-full max-w-md p-6 text-center">
           <p className="text-sm text-muted-foreground">
             Google sign-in is not configured. Set{" "}
-            <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs">VITE_GOOGLE_CLIENT_ID</code> in
-            your <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs">.env</code> file.
+            <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs">VITE_GOOGLE_CLIENT_ID</code>.
           </p>
           <p className="mt-3 text-xs text-muted-foreground">
-            Create a project in Google Cloud Console, enable the Google+ API, and create an OAuth 2.0
-            Client ID (Web application). Add{" "}
-            <code className="rounded bg-muted px-1 font-mono text-xs">http://localhost:8081</code>
-            (and 8080 if needed) to authorized JavaScript origins.
+            <strong>Vercel (production):</strong> Add <code className="rounded bg-muted px-1 font-mono text-xs">VITE_GOOGLE_CLIENT_ID</code> in
+            Vercel → Project → Settings → Environment Variables, then trigger a new deployment (Vite bakes env at build time).
           </p>
           <p className="mt-2 text-xs text-muted-foreground">
-            If .env is already set, restart the dev server (<code className="rounded bg-muted px-1 font-mono text-xs">npm run dev</code>) so Vite picks up the value.
+            <strong>Local:</strong> Set it in <code className="rounded bg-muted px-1 font-mono text-xs">.env</code> and restart{" "}
+            <code className="rounded bg-muted px-1 font-mono text-xs">npm run dev</code>.
+          </p>
+          <p className="mt-2 text-xs text-muted-foreground">
+            Create an OAuth 2.0 Client ID (Web application) in Google Cloud Console and add your site origin (e.g.{" "}
+            <code className="rounded bg-muted px-1 font-mono text-xs">https://pharmaco-guidance-hub.vercel.app</code>
+            ) to authorized JavaScript origins.
           </p>
         </div>
       </div>

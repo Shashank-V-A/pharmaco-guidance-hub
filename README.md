@@ -111,8 +111,11 @@ Open `http://localhost:5173` (or the port Vite prints). For Google sign-in, add 
 ### 5. Deploy to Vercel
 
 - Import the repo at [vercel.com/new](https://vercel.com/new).
-- Add env vars: `VITE_GROQ_API_KEY` (optional). Do **not** set `VITE_API_BASE_URL` so the app uses `/api` on the same domain.
-- Deploy. Frontend and API are served from one Vercel project.
+- **Required for login:** In Vercel → Project → **Settings → Environment Variables**, add:
+  - `VITE_GOOGLE_CLIENT_ID` = your Google OAuth 2.0 Web client ID  
+  Vite injects `VITE_*` at **build time**; Vercel does not use your local `.env`. Without this variable in Vercel, the deployed app will show "Google sign-in is not configured."
+- Optional: `VITE_GROQ_API_KEY`, `VITE_GOOGLE_GEMINI_API_KEY`. Do **not** set `VITE_API_BASE_URL` so the app uses `/api` on the same domain.
+- Deploy (or **Redeploy** after adding env vars so a new build picks them up). Frontend and API are served from one Vercel project.
 
 ---
 
