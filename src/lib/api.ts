@@ -3,7 +3,17 @@
  */
 import type { AnalysisResult } from "@/types/analysis";
 
-const API_BASE = (import.meta.env.VITE_API_BASE_URL ?? "").replace(/\/$/, "") || "/api";
+const envBase = (import.meta.env.VITE_API_BASE_URL ?? "").toString().trim().replace(/\/$/, "");
+const API_BASE = (() => {
+  if (!envBase) return "/api";
+  if (typeof window === "undefined") return envBase;
+  try {
+    if (new URL(envBase).origin === window.location.origin) return "/api";
+  } catch {
+    /* ignore invalid URL */
+  }
+  return envBase;
+})();
 
 /** Optional confidence breakdown (sum equals confidence_score). */
 export interface ConfidenceBreakdownApi {
