@@ -32,3 +32,7 @@ python -m pytest backend/tests -v
 
 - `POST /analyze` – multipart: `file` (VCF), `drug_name`, optional `patient_id`. Returns strict JSON schema.
 - `GET /health` – health check.
+
+## Deploy on Vercel
+
+The repo is set up for Vercel: frontend from `dist/`, backend via `api/index.py` under `/api/*`. See root [DEPLOYMENT.md](../DEPLOYMENT.md).

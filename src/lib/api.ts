@@ -3,7 +3,7 @@
  */
 import type { AnalysisResult } from "@/types/analysis";
 
-const API_BASE = (import.meta.env.VITE_API_BASE_URL ?? "").replace(/\/$/, "");
+const API_BASE = (import.meta.env.VITE_API_BASE_URL ?? "").replace(/\/$/, "") || "/api";
 
 /** Optional confidence breakdown (sum equals confidence_score). */
 export interface ConfidenceBreakdownApi {

@@ -1,0 +1,9 @@
+# Vercel serverless (api/*) – same as backend minus optional/system deps
+python-dotenv>=1.0.0
+fastapi>=0.109.0
+python-multipart>=0.0.6
+pydantic>=2.5.0
+httpx>=0.26.0
+reportlab>=4.0.0
+Pillow>=10.0.0
+pytesseract>=0.3.10

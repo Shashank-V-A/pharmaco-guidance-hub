@@ -1,0 +1,8 @@
+backend/tests
+backend/**/__pycache__
+.git
+node_modules
+**/*.pyc
+.venv
+.env
+.env.local
